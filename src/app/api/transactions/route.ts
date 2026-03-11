@@ -1,54 +1,117 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, transactions } from '@/db'
-import { desc } from 'drizzle-orm'
+import { db, transactions, bankAccounts } from '@/db'
+import { eq, and, desc, gte, lte } from 'drizzle-orm'
+import { requireUserId } from '@/lib/session'
 import { z } from 'zod'
-import { createId } from '@paralleldrive/cuid2'
 
-const createTransactionSchema = z.object({
-  bankAccountId: z.string().min(1),
+const addTransactionSchema = z.object({
+  bankAccountId: z.string(),
+  amount: z.number(),
   type: z.enum(['INCOME', 'EXPENSE']),
-  amount: z.number().positive(),
-  currency: z.string().default('RUB'),
   counterparty: z.string().optional(),
   description: z.string().optional(),
-  executedAt: z.string().datetime(),
+  executedAt: z.string().transform(s => new Date(s)),
 })
 
-// GET /api/transactions - List recent transactions
-export async function GET() {
-  const result = await db
-    .select()
-    .from(transactions)
-    .orderBy(desc(transactions.executedAt))
-    .limit(100)
-  
-  return NextResponse.json(result)
+// GET /api/transactions - List user's transactions
+export async function GET(request: NextRequest) {
+  try {
+    const userId = await requireUserId()
+    
+    const { searchParams } = new URL(request.url)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 500)
+    const offset = parseInt(searchParams.get('offset') || '0')
+    const from = searchParams.get('from')
+    const to = searchParams.get('to')
+    const type = searchParams.get('type') as 'INCOME' | 'EXPENSE' | null
+    
+    let query = db
+      .select({
+        id: transactions.id,
+        bankAccountId: transactions.bankAccountId,
+        externalId: transactions.externalId,
+        amount: transactions.amount,
+        currency: transactions.currency,
+        type: transactions.type,
+        counterparty: transactions.counterparty,
+        description: transactions.description,
+        executedAt: transactions.executedAt,
+        createdAt: transactions.createdAt,
+      })
+      .from(transactions)
+      .where(eq(transactions.userId, userId))
+      .orderBy(desc(transactions.executedAt))
+      .limit(limit)
+      .offset(offset)
+      .$dynamic()
+    
+    if (from) {
+      query = query.where(gte(transactions.executedAt, new Date(from)))
+    }
+    if (to) {
+      query = query.where(lte(transactions.executedAt, new Date(to)))
+    }
+    if (type) {
+      query = query.where(eq(transactions.type, type))
+    }
+    
+    const result = await query
+    
+    return NextResponse.json(result)
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AuthError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    throw error
+  }
 }
 
 // POST /api/transactions - Add manual transaction
 export async function POST(request: NextRequest) {
   try {
+    const userId = await requireUserId()
     const body = await request.json()
-    const data = createTransactionSchema.parse(body)
     
-    const [tx] = await db
+    const data = addTransactionSchema.parse(body)
+    
+    // Verify account belongs to user
+    const [account] = await db
+      .select({ id: bankAccounts.id })
+      .from(bankAccounts)
+      .where(and(
+        eq(bankAccounts.id, data.bankAccountId),
+        eq(bankAccounts.userId, userId)
+      ))
+      .limit(1)
+    
+    if (!account) {
+      return NextResponse.json({ error: 'Account not found' }, { status: 404 })
+    }
+    
+    // Generate unique external ID for manual transactions
+    const externalId = `manual_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+    
+    const [transaction] = await db
       .insert(transactions)
       .values({
+        userId,
         bankAccountId: data.bankAccountId,
-        externalId: `manual-${createId()}`,
+        externalId,
+        amount: String(Math.abs(data.amount)),
         type: data.type,
-        amount: data.amount.toString(),
-        currency: data.currency,
         counterparty: data.counterparty,
         description: data.description,
-        executedAt: new Date(data.executedAt),
+        executedAt: data.executedAt,
       })
       .returning()
     
-    return NextResponse.json(tx, { status: 201 })
+    return NextResponse.json(transaction, { status: 201 })
   } catch (error) {
+    if (error instanceof Error && error.name === 'AuthError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid data', details: error.errors }, { status: 400 })
     }
     throw error
   }

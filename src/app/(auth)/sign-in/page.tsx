@@ -1,13 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from '@/lib/auth-client'
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui'
 
 export default function SignInPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get('callbackUrl') || '/'
+  
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -32,7 +35,7 @@ export default function SignInPage() {
         return
       }
       
-      router.push('/')
+      router.push(callbackUrl)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Неизвестная ошибка')
@@ -42,7 +45,7 @@ export default function SignInPage() {
   }
   
   return (
-    <main className="min-h-screen p-8 flex items-center justify-center">
+    <main className="min-h-screen p-8 flex items-center justify-center bg-black">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>🔐 Вход</CardTitle>

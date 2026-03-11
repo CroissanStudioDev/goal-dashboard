@@ -15,6 +15,8 @@ export default function SetupPage() {
     currency: 'RUB',
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    trackIncome: true,
+    trackExpense: false,
   })
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,19 +27,24 @@ export default function SetupPage() {
     try {
       const res = await fetch('/api/goals', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: form.name,
           targetAmount: parseFloat(form.targetAmount),
           currency: form.currency,
-          startDate: new Date(form.startDate).toISOString(),
-          endDate: new Date(form.endDate + 'T23:59:59').toISOString(),
+          startDate: form.startDate,
+          endDate: form.endDate,
+          trackIncome: form.trackIncome,
+          trackExpense: form.trackExpense,
+          accountIds: [],
         }),
       })
       
+      const data = await res.json()
+      
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error?.[0]?.message || 'Failed to create goal')
+        throw new Error(data.error || 'Failed to create goal')
       }
       
       router.push('/')
@@ -51,9 +58,9 @@ export default function SetupPage() {
   
   return (
     <main className="min-h-screen p-8 flex items-center justify-center">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle>🎯 Создать цель</CardTitle>
+          <CardTitle>🎯 Новая цель</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -67,23 +74,24 @@ export default function SetupPage() {
             
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Сумма цели"
+                label="Цель"
                 type="number"
-                placeholder="2000000"
+                placeholder="1000000"
                 value={form.targetAmount}
                 onChange={(e) => setForm({ ...form, targetAmount: e.target.value })}
                 required
-                min="1"
+                min="0"
+                step="0.01"
               />
               
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-300">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Валюта
                 </label>
                 <select
                   value={form.currency}
                   onChange={(e) => setForm({ ...form, currency: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
+                  className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="RUB">₽ RUB</option>
                   <option value="USD">$ USD</option>
@@ -110,25 +118,46 @@ export default function SetupPage() {
               />
             </div>
             
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-300">
+                Учитывать
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.trackIncome}
+                    onChange={(e) => setForm({ ...form, trackIncome: e.target.checked })}
+                    className="rounded border-gray-700 bg-gray-900"
+                  />
+                  <span>Доходы</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.trackExpense}
+                    onChange={(e) => setForm({ ...form, trackExpense: e.target.checked })}
+                    className="rounded border-gray-700 bg-gray-900"
+                  />
+                  <span>Расходы</span>
+                </label>
+              </div>
+            </div>
+            
             {error && (
               <p className="text-red-400 text-sm">{error}</p>
             )}
             
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => router.back()}
-                className="flex-1"
-              >
-                Отмена
+            <div className="flex gap-4">
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading ? 'Создание...' : 'Создать цель'}
               </Button>
               <Button
-                type="submit"
-                disabled={loading}
-                className="flex-1"
+                type="button"
+                variant="secondary"
+                onClick={() => router.back()}
               >
-                {loading ? 'Создание...' : 'Создать'}
+                Отмена
               </Button>
             </div>
           </form>

@@ -1,13 +1,14 @@
+import { redirect } from 'next/navigation'
+import { getAuthSession } from '@/lib/session'
 import { db, transactions, bankAccounts } from '@/db'
-import { desc, eq } from 'drizzle-orm'
+import { eq, and, desc } from 'drizzle-orm'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui'
-import { formatCurrency } from '@/lib/format'
-import Link from 'next/link'
 import { AddTransactionForm } from './AddTransactionForm'
+import { UserMenu } from '@/components/UserMenu'
 
 export const dynamic = 'force-dynamic'
 
-async function getTransactions() {
+async function getTransactions(userId: string, limit = 50) {
   return db
     .select({
       id: transactions.id,
@@ -17,52 +18,80 @@ async function getTransactions() {
       counterparty: transactions.counterparty,
       description: transactions.description,
       executedAt: transactions.executedAt,
+    })
+    .from(transactions)
+    .where(eq(transactions.userId, userId))
+    .orderBy(desc(transactions.executedAt))
+    .limit(limit)
+}
+
+async function getAccounts(userId: string) {
+  return db
+    .select({
+      id: bankAccounts.id,
       accountName: bankAccounts.accountName,
       bank: bankAccounts.bank,
     })
-    .from(transactions)
-    .leftJoin(bankAccounts, eq(transactions.bankAccountId, bankAccounts.id))
-    .orderBy(desc(transactions.executedAt))
-    .limit(100)
+    .from(bankAccounts)
+    .where(and(
+      eq(bankAccounts.userId, userId),
+      eq(bankAccounts.isActive, true)
+    ))
 }
 
-async function getAccounts() {
-  return db
-    .select()
-    .from(bankAccounts)
-    .where(eq(bankAccounts.isActive, true))
+function formatCurrency(amount: string | number, currency: string) {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount
+  return new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(num)
 }
 
 export default async function TransactionsPage() {
+  const session = await getAuthSession()
+  
+  if (!session) {
+    redirect('/sign-in?callbackUrl=/transactions')
+  }
+  
+  const userId = session.user.id
+  
   const [txList, accountsList] = await Promise.all([
-    getTransactions(),
-    getAccounts(),
+    getTransactions(userId),
+    getAccounts(userId),
   ])
   
   return (
     <main className="min-h-screen p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8">
         <header className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">💰 Транзакции</h1>
-          <Link href="/" className="text-gray-400 hover:text-white">
-            ← На дашборд
-          </Link>
+          <div className="flex items-center gap-4">
+            <a href="/" className="text-gray-400 hover:text-white">
+              ← На дашборд
+            </a>
+            <UserMenu />
+          </div>
         </header>
         
-        {/* Add manual transaction */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Добавить вручную</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AddTransactionForm accounts={accountsList} />
-          </CardContent>
-        </Card>
+        {/* Add Transaction */}
+        {accountsList.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>➕ Добавить транзакцию</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AddTransactionForm accounts={accountsList} />
+            </CardContent>
+          </Card>
+        )}
         
-        {/* Transaction list */}
+        {/* Transaction List */}
         <Card>
           <CardHeader>
-            <CardTitle>Последние транзакции</CardTitle>
+            <CardTitle>📋 История ({txList.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {txList.length === 0 ? (
@@ -72,25 +101,26 @@ export default async function TransactionsPage() {
                 {txList.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between p-3 bg-gray-800 rounded-lg"
+                    className="flex justify-between items-center p-3 bg-gray-900 rounded-lg"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className={tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400'}>
-                          {tx.type === 'INCOME' ? '↓' : '↑'}
-                        </span>
-                        <span className="font-medium">
-                          {tx.counterparty || tx.description || 'Без описания'}
-                        </span>
+                    <div>
+                      <div className="font-medium">
+                        {tx.counterparty || tx.description || 'Без описания'}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {tx.accountName && `${tx.accountName} • `}
-                        {new Date(tx.executedAt).toLocaleString('ru-RU')}
+                        {new Date(tx.executedAt).toLocaleDateString('ru-RU', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </div>
                     </div>
-                    <div className={`text-lg font-mono ${tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className={`font-mono font-medium ${
+                      tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400'
+                    }`}>
                       {tx.type === 'INCOME' ? '+' : '-'}
-                      {formatCurrency(Math.abs(Number(tx.amount)), tx.currency)}
+                      {formatCurrency(tx.amount, tx.currency)}
                     </div>
                   </div>
                 ))}

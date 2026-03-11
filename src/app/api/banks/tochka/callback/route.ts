@@ -1,117 +1,107 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { db, bankAccounts } from '@/db'
-import { eq, and } from 'drizzle-orm'
 import { TochkaClient } from '@/lib/banks/tochka'
 import { encryptToken } from '@/lib/crypto'
+import { requireUserId } from '@/lib/session'
 
 // GET /api/banks/tochka/callback - OAuth callback
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const code = searchParams.get('code')
-  const state = searchParams.get('state')
-  const error = searchParams.get('error')
-  const errorDescription = searchParams.get('error_description')
-  
-  const baseUrl = new URL('/settings', request.url)
-  
-  // Handle OAuth errors
-  if (error) {
-    baseUrl.searchParams.set('error', errorDescription || error)
-    return NextResponse.redirect(baseUrl)
-  }
-  
-  if (!code) {
-    baseUrl.searchParams.set('error', 'missing_code')
-    return NextResponse.redirect(baseUrl)
-  }
-  
-  // Verify state (CSRF protection)
-  const cookieStore = cookies()
-  const savedState = cookieStore.get('tochka_state')?.value
-  
-  if (!savedState || savedState !== state) {
-    baseUrl.searchParams.set('error', 'invalid_state')
-    return NextResponse.redirect(baseUrl)
-  }
-  
-  // Clear cookies
-  cookieStore.delete('tochka_state')
-  cookieStore.delete('tochka_consent')
-  
-  const client = new TochkaClient({
-    clientId: process.env.TOCHKA_CLIENT_ID!,
-    clientSecret: process.env.TOCHKA_CLIENT_SECRET!,
-  })
-  
   try {
+    const userId = await requireUserId()
+    
+    const { searchParams } = new URL(request.url)
+    const code = searchParams.get('code')
+    const state = searchParams.get('state')
+    const error = searchParams.get('error')
+    
+    // Check for OAuth errors
+    if (error) {
+      const redirectUrl = new URL('/settings', request.url)
+      redirectUrl.searchParams.set('error', `tochka_oauth: ${error}`)
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    if (!code) {
+      const redirectUrl = new URL('/settings', request.url)
+      redirectUrl.searchParams.set('error', 'tochka_oauth: no code')
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    // Verify state (CSRF protection)
+    const cookieStore = await cookies()
+    const savedState = cookieStore.get('tochka_state')?.value
+    const savedConsent = cookieStore.get('tochka_consent')?.value
+    
+    if (!savedState || savedState !== state) {
+      const redirectUrl = new URL('/settings', request.url)
+      redirectUrl.searchParams.set('error', 'tochka_oauth: invalid state')
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    // Clear cookies
+    cookieStore.delete('tochka_state')
+    cookieStore.delete('tochka_consent')
+    
     // Exchange code for tokens
+    const client = new TochkaClient({
+      clientId: process.env.TOCHKA_CLIENT_ID!,
+      clientSecret: process.env.TOCHKA_CLIENT_SECRET!,
+    })
+    
     const tokens = await client.exchangeCode(
       code,
       process.env.TOCHKA_REDIRECT_URI!
     )
     
-    // Encrypt tokens before storing
-    const encryptedAccessToken = encryptToken(tokens.accessToken)
-    const encryptedRefreshToken = encryptToken(tokens.refreshToken)
-    
     // Get accounts
+    client.setTokens(tokens.accessToken, tokens.refreshToken)
     const accounts = await client.getAccounts()
     
-    if (accounts.length === 0) {
-      baseUrl.searchParams.set('error', 'no_accounts_found')
-      return NextResponse.redirect(baseUrl)
-    }
+    // Save accounts with encrypted tokens
+    const encryptedAccess = encryptToken(tokens.accessToken)
+    const encryptedRefresh = tokens.refreshToken ? encryptToken(tokens.refreshToken) : null
     
-    // Save accounts to database
-    let savedCount = 0
-    
-    for (const account of accounts) {
-      // Check if exists
-      const [existing] = await db
-        .select()
-        .from(bankAccounts)
-        .where(and(
-          eq(bankAccounts.bank, 'TOCHKA'),
-          eq(bankAccounts.accountId, account.id)
-        ))
-        .limit(1)
-      
-      if (existing) {
-        await db
-          .update(bankAccounts)
-          .set({
-            accessToken: encryptedAccessToken,
-            refreshToken: encryptedRefreshToken,
-            tokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
+    for (const acc of accounts) {
+      await db
+        .insert(bankAccounts)
+        .values({
+          userId,
+          bank: 'TOCHKA',
+          accountId: acc.id,
+          accountName: acc.name,
+          currency: acc.currency,
+          accessToken: encryptedAccess,
+          refreshToken: encryptedRefresh,
+          tokenExpiry: tokens.expiresAt ? new Date(tokens.expiresAt) : null,
+          isActive: true,
+        })
+        .onConflictDoUpdate({
+          target: [bankAccounts.userId, bankAccounts.bank, bankAccounts.accountId],
+          set: {
+            accessToken: encryptedAccess,
+            refreshToken: encryptedRefresh,
+            tokenExpiry: tokens.expiresAt ? new Date(tokens.expiresAt) : null,
             isActive: true,
             updatedAt: new Date(),
-          })
-          .where(eq(bankAccounts.id, existing.id))
-      } else {
-        await db
-          .insert(bankAccounts)
-          .values({
-            bank: 'TOCHKA',
-            accountId: account.id,
-            accountName: account.name,
-            currency: account.currency,
-            accessToken: encryptedAccessToken,
-            refreshToken: encryptedRefreshToken,
-            tokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
-          })
-      }
-      
-      savedCount++
+          },
+        })
     }
     
-    baseUrl.searchParams.set('success', `tochka_connected_${savedCount}`)
-    return NextResponse.redirect(baseUrl)
-  } catch (err) {
-    console.error('Tochka OAuth error:', err)
+    const redirectUrl = new URL('/settings', request.url)
+    redirectUrl.searchParams.set('success', `tochka_connected:${accounts.length}`)
+    return NextResponse.redirect(redirectUrl)
     
-    const errorMessage = err instanceof Error ? err.message : 'oauth_failed'
-    baseUrl.searchParams.set('error', errorMessage)
-    return NextResponse.redirect(baseUrl)
+  } catch (error) {
+    console.error('Tochka callback error:', error)
+    
+    if (error instanceof Error && error.name === 'AuthError') {
+      return NextResponse.redirect(new URL('/sign-in?callbackUrl=/settings', request.url))
+    }
+    
+    const redirectUrl = new URL('/settings', request.url)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    redirectUrl.searchParams.set('error', `tochka_callback: ${errorMessage}`)
+    return NextResponse.redirect(redirectUrl)
   }
 }

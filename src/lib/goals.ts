@@ -37,13 +37,16 @@ export interface GoalWithProgress {
 }
 
 /**
- * Get the currently active goal
+ * Get the currently active goal for a user
  */
-export async function getActiveGoal() {
+export async function getActiveGoal(userId: string) {
   const [goal] = await db
     .select()
     .from(goals)
-    .where(eq(goals.isActive, true))
+    .where(and(
+      eq(goals.userId, userId),
+      eq(goals.isActive, true)
+    ))
     .orderBy(desc(goals.createdAt))
     .limit(1)
   
@@ -51,146 +54,208 @@ export async function getActiveGoal() {
 }
 
 /**
- * Calculate progress for a goal
+ * Get goal by ID (only if it belongs to the user)
+ */
+export async function getGoalById(id: string, userId: string) {
+  const [goal] = await db
+    .select()
+    .from(goals)
+    .where(and(
+      eq(goals.id, id),
+      eq(goals.userId, userId)
+    ))
+    .limit(1)
+  
+  return goal ?? null
+}
+
+/**
+ * Calculate progress toward a goal
  */
 export async function calculateGoalProgress(
-  goal: typeof goals.$inferSelect
+  goal: typeof goals.$inferSelect,
+  userId: string
 ): Promise<GoalProgress> {
   const conditions = [
+    eq(transactions.userId, userId),
     gte(transactions.executedAt, goal.startDate),
     lte(transactions.executedAt, goal.endDate),
-    eq(transactions.type, goal.trackIncome ? 'INCOME' : 'EXPENSE'),
   ]
   
+  // Filter by specific accounts if set
   if (goal.accountIds.length > 0) {
     conditions.push(inArray(transactions.bankAccountId, goal.accountIds))
   }
   
+  // Filter by transaction type
+  const types: ('INCOME' | 'EXPENSE')[] = []
+  if (goal.trackIncome) types.push('INCOME')
+  if (goal.trackExpense) types.push('EXPENSE')
+  
+  if (types.length === 1) {
+    conditions.push(eq(transactions.type, types[0]))
+  } else if (types.length === 2) {
+    conditions.push(inArray(transactions.type, types))
+  }
+  
   const txs = await db
-    .select()
+    .select({
+      amount: transactions.amount,
+      type: transactions.type,
+    })
     .from(transactions)
     .where(and(...conditions))
   
-  const current = txs.reduce((sum, tx) => sum + Number(tx.amount), 0)
-  const target = Number(goal.targetAmount)
+  let current = 0
+  for (const tx of txs) {
+    const amount = parseFloat(tx.amount)
+    if (tx.type === 'INCOME') {
+      current += amount
+    } else if (tx.type === 'EXPENSE') {
+      current -= amount
+    }
+  }
+  
+  const target = parseFloat(goal.targetAmount)
+  const percent = target > 0 ? Math.min((current / target) * 100, 100) : 0
   
   return {
     current,
     target,
-    percent: target > 0 ? (current / target) * 100 : 0,
+    percent,
     transactionCount: txs.length,
   }
 }
 
 /**
- * Calculate pace and forecast for a goal
+ * Calculate pace toward goal
  */
 export function calculatePace(
   goal: typeof goals.$inferSelect,
   progress: GoalProgress
 ): PaceInfo {
   const now = new Date()
+  const start = new Date(goal.startDate)
+  const end = new Date(goal.endDate)
   
-  const totalDays = Math.ceil(
-    (goal.endDate.getTime() - goal.startDate.getTime()) / (1000 * 60 * 60 * 24)
-  )
-  const elapsedDays = Math.max(1, Math.ceil(
-    (now.getTime() - goal.startDate.getTime()) / (1000 * 60 * 60 * 24)
-  ))
+  const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
+  const daysElapsed = Math.max(1, Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
+  const daysRemaining = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
   
-  const expectedPercent = (elapsedDays / totalDays) * 100
-  const paceDiff = progress.percent - expectedPercent
+  const expectedPercent = (daysElapsed / totalDays) * 100
+  const percentDiff = progress.percent - expectedPercent
   
-  // Determine status
+  const dailyRate = progress.current / daysElapsed
+  const daysToComplete = dailyRate > 0 
+    ? Math.ceil((progress.target - progress.current) / dailyRate)
+    : Infinity
+  
+  const forecastDate = new Date(now.getTime() + daysToComplete * 24 * 60 * 60 * 1000)
+  
   let status: PaceStatus
-  if (paceDiff > 5) status = 'ahead'
-  else if (paceDiff > -5) status = 'ontrack'
-  else if (paceDiff > -15) status = 'behind'
-  else status = 'atrisk'
-  
-  // Calculate forecast
-  const dailyRate = progress.current / elapsedDays
-  const remaining = progress.target - progress.current
-  const daysToComplete = dailyRate > 0 ? Math.ceil(remaining / dailyRate) : Infinity
-  
-  const forecastDate = daysToComplete === Infinity
-    ? 'никогда'
-    : new Date(now.getTime() + daysToComplete * 24 * 60 * 60 * 1000)
-        .toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+  if (percentDiff >= 10) {
+    status = 'ahead'
+  } else if (percentDiff >= -5) {
+    status = 'ontrack'
+  } else if (percentDiff >= -20) {
+    status = 'behind'
+  } else {
+    status = 'atrisk'
+  }
   
   return {
     status,
-    percentDiff: Math.round(paceDiff),
-    forecastDate,
+    percentDiff,
+    forecastDate: isFinite(daysToComplete) ? forecastDate.toISOString() : 'never',
     dailyRate,
   }
 }
 
 /**
- * Get today and yesterday stats for a goal
+ * Get daily stats for a goal
  */
 export async function getDayStats(
-  goal: typeof goals.$inferSelect
+  goal: typeof goals.$inferSelect,
+  userId: string
 ): Promise<{ today: DayStats; yesterday: DayStats }> {
-  const now = new Date()
-  const todayStart = startOfDay(now)
-  const yesterdayStart = startOfDay(subDays(now, 1))
+  const todayStart = startOfDay(new Date())
+  const yesterdayStart = startOfDay(subDays(new Date(), 1))
   
   const baseConditions = [
-    eq(transactions.type, goal.trackIncome ? 'INCOME' : 'EXPENSE'),
+    eq(transactions.userId, userId),
   ]
   
   if (goal.accountIds.length > 0) {
     baseConditions.push(inArray(transactions.bankAccountId, goal.accountIds))
   }
   
-  const [todayTx, yesterdayTx] = await Promise.all([
-    db.select().from(transactions).where(and(
+  const types: ('INCOME' | 'EXPENSE')[] = []
+  if (goal.trackIncome) types.push('INCOME')
+  if (goal.trackExpense) types.push('EXPENSE')
+  
+  if (types.length === 1) {
+    baseConditions.push(eq(transactions.type, types[0]))
+  } else if (types.length === 2) {
+    baseConditions.push(inArray(transactions.type, types))
+  }
+  
+  // Today's transactions
+  const todayTxs = await db
+    .select({ amount: transactions.amount, type: transactions.type })
+    .from(transactions)
+    .where(and(
       ...baseConditions,
       gte(transactions.executedAt, todayStart)
-    )),
-    db.select().from(transactions).where(and(
+    ))
+  
+  // Yesterday's transactions
+  const yesterdayTxs = await db
+    .select({ amount: transactions.amount, type: transactions.type })
+    .from(transactions)
+    .where(and(
       ...baseConditions,
       gte(transactions.executedAt, yesterdayStart),
       lt(transactions.executedAt, todayStart)
-    )),
-  ])
+    ))
+  
+  const sumTransactions = (txs: { amount: string; type: string }[]) => {
+    return txs.reduce((sum, tx) => {
+      const amount = parseFloat(tx.amount)
+      return tx.type === 'INCOME' ? sum + amount : sum - amount
+    }, 0)
+  }
   
   return {
     today: {
-      amount: todayTx.reduce((sum, tx) => sum + Number(tx.amount), 0),
-      transactions: todayTx.length,
+      amount: sumTransactions(todayTxs),
+      transactions: todayTxs.length,
     },
     yesterday: {
-      amount: yesterdayTx.reduce((sum, tx) => sum + Number(tx.amount), 0),
-      transactions: yesterdayTx.length,
+      amount: sumTransactions(yesterdayTxs),
+      transactions: yesterdayTxs.length,
     },
   }
 }
 
 /**
- * Get full goal data with all calculations
+ * Get full goal data with progress (for API)
  */
 export async function getGoalWithProgress(
-  goalId?: string
+  goalId: string,
+  userId: string
 ): Promise<GoalWithProgress | null> {
-  const goal = goalId
-    ? await db.select().from(goals).where(eq(goals.id, goalId)).then(r => r[0])
-    : await getActiveGoal()
-  
+  const goal = await getGoalById(goalId, userId)
   if (!goal) return null
   
-  const [progress, dayStats] = await Promise.all([
-    calculateGoalProgress(goal),
-    getDayStats(goal),
-  ])
-  
+  const progress = await calculateGoalProgress(goal, userId)
   const pace = calculatePace(goal, progress)
+  const { today, yesterday } = await getDayStats(goal, userId)
   
   return {
     goal,
     progress,
     pace,
-    ...dayStats,
+    today,
+    yesterday,
   }
 }

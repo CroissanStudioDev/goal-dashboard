@@ -1,37 +1,46 @@
-import { getGoalWithProgress } from '@/lib/goals'
+import { redirect } from 'next/navigation'
+import { getAuthSession } from '@/lib/session'
+import { getActiveGoal, calculateGoalProgress, calculatePace, getDayStats } from '@/lib/goals'
 import { TVDashboard } from './TVDashboard'
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 30
 
 export default async function TVPage() {
-  const data = await getGoalWithProgress()
+  const session = await getAuthSession()
   
-  if (!data) {
+  if (!session) {
+    redirect('/sign-in?callbackUrl=/tv')
+  }
+  
+  const userId = session.user.id
+  const goal = await getActiveGoal(userId)
+  
+  if (!goal) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
-        <h1 className="text-4xl text-gray-600">Нет активных целей</h1>
+        <p className="text-4xl text-gray-500">Нет активной цели</p>
       </main>
     )
   }
   
+  const [progress, dayStats] = await Promise.all([
+    calculateGoalProgress(goal, userId),
+    getDayStats(goal, userId),
+  ])
+  
+  const pace = calculatePace(goal, progress)
+  
   return (
-    <TVDashboard 
-      data={{
-        goal: {
-          name: data.goal.name,
-          currency: data.goal.currency,
-          endDate: data.goal.endDate.toISOString(),
-        },
-        progress: {
-          current: data.progress.current,
-          target: data.progress.target,
-          percent: data.progress.percent,
-        },
-        pace: data.pace,
-        today: data.today,
-        yesterday: data.yesterday,
-      }} 
+    <TVDashboard
+      goal={{
+        name: goal.name,
+        currency: goal.currency,
+        startDate: goal.startDate.toISOString(),
+        endDate: goal.endDate.toISOString(),
+      }}
+      progress={progress}
+      pace={pace}
+      dayStats={dayStats}
     />
   )
 }

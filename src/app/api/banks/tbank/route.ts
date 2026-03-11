@@ -1,110 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, bankAccounts } from '@/db'
-import { eq, and } from 'drizzle-orm'
 import { TBankClient } from '@/lib/banks/tbank'
 import { encryptToken } from '@/lib/crypto'
+import { requireUserId } from '@/lib/session'
 import { z } from 'zod'
 
 const connectSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
-  certificatePath: z.string().optional(),
-  certificateKeyPath: z.string().optional(),
-  certificatePassword: z.string().optional(),
+  token: z.string().min(1),
 })
 
 // POST /api/banks/tbank - Connect T-Bank with token
 export async function POST(request: NextRequest) {
   try {
+    const userId = await requireUserId()
     const body = await request.json()
-    const data = connectSchema.parse(body)
     
-    const client = new TBankClient({
-      token: data.token,
-      certificatePath: data.certificatePath,
-      certificateKeyPath: data.certificateKeyPath,
-      certificatePassword: data.certificatePassword,
-    })
+    const { token } = connectSchema.parse(body)
     
-    // Verify token by fetching accounts
-    let accounts
-    try {
-      accounts = await client.getAccounts()
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Invalid token or API error. Make sure mTLS certificate is configured if required.' },
-        { status: 400 }
-      )
-    }
+    // Create client and verify token
+    const client = new TBankClient({ token })
+    
+    // Get accounts to verify token works
+    const accounts = await client.getAccounts()
     
     if (accounts.length === 0) {
       return NextResponse.json(
-        { error: 'No accounts found for this token' },
+        { error: 'No accounts found' },
         { status: 400 }
       )
     }
     
-    // Encrypt token before storing
-    const encryptedToken = encryptToken(data.token)
+    // Encrypt and save
+    const encryptedToken = encryptToken(token)
     
-    // Save accounts to database
     const savedAccounts = []
-    
-    for (const account of accounts) {
-      // Check if exists
-      const [existing] = await db
-        .select()
-        .from(bankAccounts)
-        .where(and(
-          eq(bankAccounts.bank, 'TBANK'),
-          eq(bankAccounts.accountId, account.id)
-        ))
-        .limit(1)
-      
-      let saved
-      
-      if (existing) {
-        [saved] = await db
-          .update(bankAccounts)
-          .set({
+    for (const acc of accounts) {
+      const [saved] = await db
+        .insert(bankAccounts)
+        .values({
+          userId,
+          bank: 'TBANK',
+          accountId: acc.id,
+          accountName: acc.name,
+          currency: acc.currency,
+          accessToken: encryptedToken,
+          isActive: true,
+        })
+        .onConflictDoUpdate({
+          target: [bankAccounts.userId, bankAccounts.bank, bankAccounts.accountId],
+          set: {
             accessToken: encryptedToken,
             isActive: true,
             updatedAt: new Date(),
-          })
-          .where(eq(bankAccounts.id, existing.id))
-          .returning()
-      } else {
-        [saved] = await db
-          .insert(bankAccounts)
-          .values({
-            bank: 'TBANK',
-            accountId: account.id,
-            accountName: account.name,
-            currency: account.currency,
-            accessToken: encryptedToken,
-          })
-          .returning()
-      }
+          },
+        })
+        .returning({
+          id: bankAccounts.id,
+          accountName: bankAccounts.accountName,
+        })
       
-      savedAccounts.push({
-        id: saved.id,
-        accountId: saved.accountId,
-        accountName: saved.accountName,
-      })
+      savedAccounts.push(saved)
     }
     
     return NextResponse.json({
-      message: 'T-Bank connected successfully',
+      success: true,
       accounts: savedAccounts,
     })
+    
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 })
+    console.error('T-Bank connect error:', error)
+    
+    if (error instanceof Error && error.name === 'AuthError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    console.error('T-Bank connect error:', error)
-    return NextResponse.json(
-      { error: 'Failed to connect T-Bank' },
-      { status: 500 }
-    )
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 400 })
+    }
+    
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

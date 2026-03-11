@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation'
+import { getAuthSession } from '@/lib/session'
 import { getActiveGoal, calculateGoalProgress, calculatePace, getDayStats } from '@/lib/goals'
 import { GoalProgress } from '@/components/GoalProgress'
 import { TodayStats } from '@/components/TodayStats'
@@ -10,7 +12,14 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const goal = await getActiveGoal()
+  const session = await getAuthSession()
+  
+  if (!session) {
+    redirect('/sign-in')
+  }
+  
+  const userId = session.user.id
+  const goal = await getActiveGoal(userId)
   
   if (!goal) {
     return (
@@ -36,8 +45,8 @@ export default async function DashboardPage() {
   }
   
   const [progress, dayStats] = await Promise.all([
-    calculateGoalProgress(goal),
-    getDayStats(goal),
+    calculateGoalProgress(goal, userId),
+    getDayStats(goal, userId),
   ])
   
   const pace = calculatePace(goal, progress)
