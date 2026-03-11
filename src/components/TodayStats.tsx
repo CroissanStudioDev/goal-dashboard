@@ -15,10 +15,10 @@ interface TodayStatsProps {
 
 export function TodayStats({ today, yesterday, currency }: TodayStatsProps) {
   return (
-    <div className="flex justify-center gap-16 text-xl">
+    <div className="flex justify-center gap-8 md:gap-16 text-lg md:text-xl">
       <div className="text-center">
         <div className="text-gray-500 mb-1">Сегодня</div>
-        <div className="text-4xl font-bold text-green-400">
+        <div className="text-3xl md:text-4xl font-bold text-green-400">
           +{formatCurrency(today.amount, currency)}
         </div>
         <div className="text-gray-600 text-sm mt-1">
@@ -28,7 +28,7 @@ export function TodayStats({ today, yesterday, currency }: TodayStatsProps) {
       
       <div className="text-center">
         <div className="text-gray-500 mb-1">Вчера</div>
-        <div className="text-4xl font-bold text-gray-400">
+        <div className="text-3xl md:text-4xl font-bold text-gray-400">
           +{formatCurrency(yesterday.amount, currency)}
         </div>
         <div className="text-gray-600 text-sm mt-1">

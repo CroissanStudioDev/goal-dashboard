@@ -3,16 +3,19 @@
 import { useEffect, useState } from 'react'
 
 export function LiveIndicator() {
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   
   useEffect(() => {
-    // Update timestamp every minute
+    setLastUpdate(new Date())
+    
     const interval = setInterval(() => {
       setLastUpdate(new Date())
     }, 60_000)
     
     return () => clearInterval(interval)
   }, [])
+  
+  if (!lastUpdate) return null
   
   const timeStr = lastUpdate.toLocaleTimeString('ru-RU', {
     hour: '2-digit',

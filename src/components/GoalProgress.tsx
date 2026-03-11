@@ -16,17 +16,17 @@ interface GoalProgressProps {
 }
 
 const statusColors: Record<PaceStatus, string> = {
-  ahead: 'text-goal-ahead',
-  ontrack: 'text-goal-ontrack',
-  behind: 'text-goal-behind',
-  atrisk: 'text-goal-atrisk',
+  ahead: 'text-green-400',
+  ontrack: 'text-blue-400',
+  behind: 'text-yellow-400',
+  atrisk: 'text-red-400',
 }
 
 const statusBgColors: Record<PaceStatus, string> = {
-  ahead: 'bg-goal-ahead',
-  ontrack: 'bg-goal-ontrack',
-  behind: 'bg-goal-behind',
-  atrisk: 'bg-goal-atrisk',
+  ahead: 'bg-green-500',
+  ontrack: 'bg-blue-500',
+  behind: 'bg-yellow-500',
+  atrisk: 'bg-red-500',
 }
 
 const statusLabels: Record<PaceStatus, string> = {
@@ -43,35 +43,41 @@ export function GoalProgress({ current, target, currency, pace }: GoalProgressPr
     <div className="space-y-8">
       {/* Big number */}
       <div className="text-center">
-        <div className={`text-display-lg font-bold tabular-nums ${statusColors[pace.status]} glow`}>
+        <div 
+          className={`text-7xl md:text-8xl lg:text-display-lg font-bold tabular-nums ${statusColors[pace.status]}`}
+          style={{ textShadow: '0 0 40px currentColor' }}
+        >
           {formatCurrency(current, currency)}
         </div>
-        <div className="text-3xl text-gray-500 mt-2">
+        <div className="text-2xl md:text-3xl text-gray-500 mt-2">
           из {formatCurrency(target, currency)}
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="relative">
-        <div className="h-8 bg-gray-800 rounded-full overflow-hidden">
+      <div className="relative max-w-3xl mx-auto">
+        <div className="h-6 md:h-8 bg-gray-800 rounded-full overflow-hidden">
           <div
-            className={`h-full ${statusBgColors[pace.status]} progress-bar rounded-full`}
+            className={`h-full ${statusBgColors[pace.status]} progress-bar rounded-full transition-all duration-1000`}
             style={{ width: `${percent}%` }}
           />
         </div>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-2xl font-bold text-white drop-shadow-lg">
+          <span className="text-xl md:text-2xl font-bold text-white drop-shadow-lg">
             {formatPercent(percent)}
           </span>
         </div>
       </div>
 
       {/* Pace indicator */}
-      <div className="flex justify-center gap-12 text-2xl">
+      <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-12 text-xl md:text-2xl">
         <div className={statusColors[pace.status]}>
           {statusLabels[pace.status]}
-          {pace.percentDiff > 0 && ` +${pace.percentDiff}%`}
-          {pace.percentDiff < 0 && ` ${pace.percentDiff}%`}
+          {pace.percentDiff !== 0 && (
+            <span className="ml-2">
+              {pace.percentDiff > 0 ? '+' : ''}{pace.percentDiff}%
+            </span>
+          )}
         </div>
         <div className="text-gray-400">
           Прогноз: достигнем <span className="text-white">{pace.forecastDate}</span>

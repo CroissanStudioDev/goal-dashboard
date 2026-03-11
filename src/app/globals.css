@@ -9,13 +9,23 @@
   --color-atrisk: #ef4444;
 }
 
-body {
-  font-family: var(--font-mono), monospace;
+html {
+  color-scheme: dark;
 }
 
-/* TV mode: hide scrollbars */
+body {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  background: #000;
+}
+
+/* TV mode: hide scrollbars, cursor */
 .tv-mode {
   overflow: hidden;
+  cursor: none;
+}
+
+.tv-mode:hover {
+  cursor: default;
 }
 
 /* Animated progress bar */
@@ -40,4 +50,40 @@ body {
 
 .live-indicator {
   animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* Smooth number transitions */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: #3b82f6;
+  color: white;
 }
