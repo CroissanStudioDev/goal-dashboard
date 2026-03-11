@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Bank account connections
+model BankAccount {
+  id           String   @id @default(cuid())
+  bank         Bank
+  accountId    String   // Bank's internal account ID
+  accountName  String
+  currency     String   @default("RUB")
+  
+  // Auth tokens (encrypted in production)
+  accessToken  String?
+  refreshToken String?
+  tokenExpiry  DateTime?
+  
+  isActive     Boolean  @default(true)
+  lastSyncAt   DateTime?
+  
+  transactions Transaction[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([bank, accountId])
+}
+
+enum Bank {
+  TOCHKA
+  TBANK
+}
+
+// Synced transactions
+model Transaction {
+  id              String   @id @default(cuid())
+  bankAccountId   String
+  bankAccount     BankAccount @relation(fields: [bankAccountId], references: [id])
+  
+  externalId      String   // Bank's transaction ID
+  amount          Decimal  @db.Decimal(15, 2)
+  currency        String   @default("RUB")
+  
+  type            TransactionType
+  counterparty    String?
+  description     String?
+  
+  executedAt      DateTime
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([bankAccountId, externalId])
+  @@index([executedAt])
+  @@index([type, executedAt])
+}
+
+enum TransactionType {
+  INCOME    // Incoming payment
+  EXPENSE   // Outgoing payment
+}
+
+// Revenue goals
+model Goal {
+  id          String   @id @default(cuid())
+  name        String
+  
+  targetAmount Decimal @db.Decimal(15, 2)
+  currency     String  @default("RUB")
+  
+  startDate   DateTime
+  endDate     DateTime
+  
+  // Which accounts to track
+  accountIds  String[] // Array of BankAccount IDs, empty = all
+  
+  // Filter by transaction type
+  trackIncome  Boolean @default(true)
+  trackExpense Boolean @default(false)
+  
+  isActive    Boolean @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Sync log for debugging
+model SyncLog {
+  id          String   @id @default(cuid())
+  bankAccountId String
+  
+  status      SyncStatus
+  message     String?
+  
+  transactionsAdded Int @default(0)
+  
+  startedAt   DateTime
+  completedAt DateTime?
+}
+
+enum SyncStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}

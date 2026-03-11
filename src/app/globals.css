@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-ahead: #22c55e;
+  --color-ontrack: #3b82f6;
+  --color-behind: #f59e0b;
+  --color-atrisk: #ef4444;
+}
+
+body {
+  font-family: var(--font-mono), monospace;
+}
+
+/* TV mode: hide scrollbars */
+.tv-mode {
+  overflow: hidden;
+}
+
+/* Animated progress bar */
+.progress-bar {
+  transition: width 1s ease-out;
+}
+
+/* Glowing effect for numbers */
+.glow {
+  text-shadow: 0 0 20px currentColor;
+}
+
+/* Pulse animation for live indicator */
+@keyframes live-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.live-indicator {
+  animation: live-pulse 2s ease-in-out infinite;
+}
