@@ -4,7 +4,7 @@ import { TochkaClient } from '@/lib/banks/tochka'
 import { isTochkaConfigured } from '@/lib/env'
 import { randomUUID } from 'crypto'
 
-// GET /api/auth/tochka - Start OAuth flow
+// GET /api/banks/tochka - Start OAuth flow
 export async function GET(request: NextRequest) {
   if (!isTochkaConfigured()) {
     return NextResponse.json(

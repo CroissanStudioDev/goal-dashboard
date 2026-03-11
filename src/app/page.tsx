@@ -4,6 +4,7 @@ import { TodayStats } from '@/components/TodayStats'
 import { LiveIndicator } from '@/components/LiveIndicator'
 import { AutoRefresh } from '@/components/AutoRefresh'
 import { SyncStatus } from '@/components/SyncStatus'
+import { UserMenu } from '@/components/UserMenu'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -66,6 +67,7 @@ export default async function DashboardPage() {
           <Link href="/settings" className="text-gray-500 hover:text-white text-sm">
             ⚙️
           </Link>
+          <UserMenu />
         </div>
       </header>
 

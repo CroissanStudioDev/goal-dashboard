@@ -12,7 +12,7 @@ const connectSchema = z.object({
   certificatePassword: z.string().optional(),
 })
 
-// POST /api/auth/tbank - Connect T-Bank with token
+// POST /api/banks/tbank - Connect T-Bank with token
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

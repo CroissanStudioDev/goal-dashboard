@@ -1,42 +1,44 @@
 /**
- * Next.js Middleware for Basic Auth
+ * Next.js Middleware for auth protection
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getSessionCookie } from 'better-auth/cookies'
+
+// Routes that don't require authentication
+const publicRoutes = ['/sign-in', '/sign-up', '/api/auth']
 
 export function middleware(request: NextRequest) {
-  // Check if auth is enabled
-  const username = process.env.AUTH_USERNAME
-  const password = process.env.AUTH_PASSWORD
+  const { pathname } = request.nextUrl
   
-  if (!username || !password) {
+  // Allow public routes
+  if (publicRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
   
-  // Check authorization header
-  const authHeader = request.headers.get('authorization')
-  
-  if (authHeader?.startsWith('Basic ')) {
-    const base64 = authHeader.slice(6)
-    const decoded = Buffer.from(base64, 'base64').toString('utf8')
-    const [user, pass] = decoded.split(':')
-    
-    if (user === username && pass === password) {
-      return NextResponse.next()
-    }
+  // Allow static files
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next()
   }
   
-  // Return 401 with Basic Auth challenge
-  return new NextResponse('Authentication required', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="Goal Dashboard"',
-    },
-  })
+  // Check for session cookie
+  const sessionCookie = getSessionCookie(request)
+  
+  if (!sessionCookie) {
+    // Redirect to sign-in
+    const signInUrl = new URL('/sign-in', request.url)
+    signInUrl.searchParams.set('callbackUrl', pathname)
+    return NextResponse.redirect(signInUrl)
+  }
+  
+  return NextResponse.next()
 }
 
 export const config = {
-  // Protect all routes except static files
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],

@@ -3,6 +3,7 @@
 Real-time revenue tracking dashboard for teams. Set a goal, watch your progress on a big screen.
 
 ![Dashboard](https://img.shields.io/badge/Next.js-14-black)
+![Auth](https://img.shields.io/badge/Better_Auth-1.2-blue)
 ![Database](https://img.shields.io/badge/Drizzle-ORM-green)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
@@ -12,14 +13,14 @@ Real-time revenue tracking dashboard for teams. Set a goal, watch your progress 
 - **Multi-bank** — Aggregate data from Russian banks (Точка, Т-Банк)
 - **Real-time** — Auto-sync every 10 minutes while page is open
 - **TV Mode** — Fullscreen mode optimized for office projectors
-- **Secure** — Encrypted token storage, Basic Auth, rate limiting
+- **Secure** — Better Auth, encrypted token storage, rate limiting
 - **Progress tracking** — Visual progress bar with pace indicator
 - **Forecasting** — Predict goal completion date based on current pace
 
 ## Security
 
+- ✅ **Better Auth** — Full authentication with email/password
 - ✅ **Token encryption** — Bank tokens encrypted with AES-256-GCM
-- ✅ **Basic Auth** — Optional password protection
 - ✅ **CSRF protection** — OAuth state validation
 - ✅ **Rate limiting** — 10 req/min on sync endpoint
 - ✅ **mTLS support** — For T-Bank production API
@@ -36,9 +37,9 @@ pnpm install
 
 # Configure
 cp .env.example .env.local
-# Edit .env.local - set DATABASE_URL and ENCRYPTION_SECRET (required)
+# Edit .env.local - set required variables
 
-# Push schema
+# Push schema (creates auth + app tables)
 pnpm db:push
 
 # Run
@@ -47,21 +48,24 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
+First user to sign up becomes the admin.
+
 ## Environment Variables
 
 ```env
 # Required
 DATABASE_URL=postgresql://user:pass@localhost:5432/goal_dashboard
-ENCRYPTION_SECRET=your-32-char-secret-key  # openssl rand -hex 32
+BETTER_AUTH_SECRET=openssl-rand-base64-32
+ENCRYPTION_SECRET=openssl-rand-hex-32
 
-# Optional - Basic Auth
-AUTH_USERNAME=admin
-AUTH_PASSWORD=secret
+# App URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:3000
 
 # Optional - Точка Bank
 TOCHKA_CLIENT_ID=
 TOCHKA_CLIENT_SECRET=
-TOCHKA_REDIRECT_URI=http://localhost:3000/api/auth/tochka/callback
+TOCHKA_REDIRECT_URI=http://localhost:3000/api/banks/tochka/callback
 
 # Optional - T-Bank mTLS
 TBANK_CERT_PATH=/path/to/cert.pem
@@ -73,13 +77,21 @@ TBANK_CERT_PASSWORD=
 
 | Route | Description |
 |-------|-------------|
+| `/sign-in` | Login page |
+| `/sign-up` | Registration page |
 | `/` | Main dashboard |
-| `/tv` | TV/Projector mode (fullscreen, 30s refresh) |
+| `/tv` | TV/Projector mode |
 | `/setup` | Create new goal |
 | `/settings` | Manage banks and goals |
 | `/transactions` | View and add transactions |
 
 ## API Routes
+
+### Auth (Better Auth)
+- `POST /api/auth/sign-up` — Register
+- `POST /api/auth/sign-in/email` — Login
+- `POST /api/auth/sign-out` — Logout
+- `GET /api/auth/get-session` — Get session
 
 ### Goals
 - `GET /api/goals` — List active goals
@@ -87,55 +99,49 @@ TBANK_CERT_PASSWORD=
 - `GET /api/goals/[id]` — Get goal with progress
 - `DELETE /api/goals/[id]` — Deactivate goal
 
+### Banks
+- `GET /api/banks/tochka` — Start Точка OAuth
+- `GET /api/banks/tochka/callback` — OAuth callback
+- `POST /api/banks/tbank` — Connect T-Bank with token
+
 ### Sync
-- `POST /api/sync` — Sync bank transactions (rate limited)
-- `GET /api/sync` — Get sync status
+- `POST /api/sync` — Sync bank transactions
 
-### Auth
-- `GET /api/auth/tochka` — Start Точка OAuth
-- `POST /api/auth/tbank` — Connect T-Bank with token
+## Database Schema
 
-## Bank Setup
+Better Auth tables:
+- `user` — Users
+- `session` — Sessions
+- `account` — OAuth accounts
+- `verification` — Email verification
 
-### Точка Bank
-
-1. Internet Bank → Integrations & API → Connect
-2. Register OAuth 2.0 application
-3. Select permissions: `ReadAccountsBasic`, `ReadAccountsDetail`, `ReadBalances`, `ReadStatements`
-4. Copy credentials to `.env.local`
-
-### T-Bank
-
-1. T-Business → Services → API Integration
-2. Issue token + download certificate
-3. In app: Settings → Connect T-Bank
-4. For production: set `TBANK_CERT_PATH` and `TBANK_KEY_PATH`
+App tables:
+- `bank_accounts` — Connected bank accounts
+- `transactions` — Synced transactions
+- `goals` — Revenue goals
+- `sync_logs` — Sync history
 
 ## Architecture
 
 ```
 src/
 ├── app/
-│   ├── api/          # API routes
-│   ├── (pages)/      # UI pages
-│   ├── error.tsx     # Error boundary
-│   └── middleware.ts # Auth middleware
+│   ├── (auth)/       # Sign in/up pages
+│   ├── api/
+│   │   ├── auth/     # Better Auth handler
+│   │   ├── banks/    # Bank OAuth
+│   │   └── ...       # Other API routes
+│   └── ...           # App pages
 ├── components/       # React components
-├── db/              # Drizzle schema
-├── hooks/           # React hooks (sync, fullscreen)
+├── db/
+│   ├── schema.ts     # App schema
+│   └── auth-schema.ts # Better Auth schema
+├── hooks/            # React hooks
 └── lib/
-    ├── banks/       # Bank API clients
-    ├── auth.ts      # Auth helpers
-    ├── crypto.ts    # Token encryption
-    ├── env.ts       # Env validation
-    ├── goals.ts     # Goal calculations
-    └── rate-limit.ts
-```
-
-## Docker
-
-```bash
-docker-compose up -d
+    ├── auth.ts       # Better Auth config
+    ├── auth-client.ts # Client-side auth
+    ├── crypto.ts     # Token encryption
+    └── goals.ts      # Goal calculations
 ```
 
 ## License

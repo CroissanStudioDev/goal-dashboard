@@ -5,7 +5,7 @@ import { eq, and } from 'drizzle-orm'
 import { TochkaClient } from '@/lib/banks/tochka'
 import { encryptToken } from '@/lib/crypto'
 
-// GET /api/auth/tochka/callback - OAuth callback
+// GET /api/banks/tochka/callback - OAuth callback
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get('code')

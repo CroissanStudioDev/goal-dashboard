@@ -8,12 +8,12 @@ const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().url(),
   
-  // Encryption (required for token storage)
-  ENCRYPTION_SECRET: z.string().min(32, 'ENCRYPTION_SECRET must be at least 32 characters'),
+  // Better Auth
+  BETTER_AUTH_SECRET: z.string().min(32, 'BETTER_AUTH_SECRET must be at least 32 characters'),
+  BETTER_AUTH_URL: z.string().url().optional(),
   
-  // Auth (optional - if not set, app is open)
-  AUTH_USERNAME: z.string().optional(),
-  AUTH_PASSWORD: z.string().optional(),
+  // Encryption (required for bank token storage)
+  ENCRYPTION_SECRET: z.string().min(32, 'ENCRYPTION_SECRET must be at least 32 characters'),
   
   // Точка Bank (optional)
   TOCHKA_CLIENT_ID: z.string().optional(),
@@ -40,7 +40,6 @@ export function getEnv(): Env {
     
     console.error('❌ Invalid environment variables:\n' + errors)
     
-    // In development, provide helpful message
     if (process.env.NODE_ENV === 'development') {
       console.error('\nMake sure you have a .env.local file with required variables.')
       console.error('See .env.example for reference.\n')
@@ -51,13 +50,6 @@ export function getEnv(): Env {
   
   cachedEnv = result.data
   return cachedEnv
-}
-
-/**
- * Check if auth is enabled
- */
-export function isAuthEnabled(): boolean {
-  return !!(process.env.AUTH_USERNAME && process.env.AUTH_PASSWORD)
 }
 
 /**

@@ -1,56 +1,47 @@
 /**
- * Simple Basic Auth middleware
+ * Better Auth configuration
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { isAuthEnabled } from './env'
+import { betterAuth } from 'better-auth'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { nextCookies } from 'better-auth/next-js'
+import { db } from '@/db'
 
-/**
- * Check Basic Auth credentials
- */
-export function checkAuth(request: NextRequest): boolean {
-  if (!isAuthEnabled()) {
-    return true // Auth not configured, allow all
-  }
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: 'pg',
+  }),
   
-  const authHeader = request.headers.get('authorization')
+  // Email/password authentication
+  emailAndPassword: {
+    enabled: true,
+    // Require email verification (optional)
+    requireEmailVerification: false,
+  },
   
-  if (!authHeader?.startsWith('Basic ')) {
-    return false
-  }
-  
-  const base64 = authHeader.slice(6)
-  const decoded = Buffer.from(base64, 'base64').toString('utf8')
-  const [username, password] = decoded.split(':')
-  
-  return (
-    username === process.env.AUTH_USERNAME &&
-    password === process.env.AUTH_PASSWORD
-  )
-}
-
-/**
- * Return 401 response with Basic Auth challenge
- */
-export function unauthorizedResponse(): NextResponse {
-  return new NextResponse('Unauthorized', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="Goal Dashboard"',
+  // Session configuration
+  session: {
+    // Session expires in 7 days
+    expiresIn: 60 * 60 * 24 * 7,
+    // Update session expiry on each request
+    updateAge: 60 * 60 * 24, // 1 day
+    // Cookie configuration
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5, // 5 minutes
     },
-  })
-}
+  },
+  
+  // Plugins
+  plugins: [
+    nextCookies(), // Handle cookies in server actions
+  ],
+  
+  // Trusted origins for CORS
+  trustedOrigins: process.env.NEXT_PUBLIC_APP_URL 
+    ? [process.env.NEXT_PUBLIC_APP_URL] 
+    : [],
+})
 
-/**
- * Middleware helper for protected routes
- */
-export function withAuth(
-  handler: (request: NextRequest) => Promise<NextResponse> | NextResponse
-) {
-  return async (request: NextRequest) => {
-    if (!checkAuth(request)) {
-      return unauthorizedResponse()
-    }
-    return handler(request)
-  }
-}
+export type Session = typeof auth.$Infer.Session
+export type User = typeof auth.$Infer.Session.user

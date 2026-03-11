@@ -13,7 +13,7 @@ export function ConnectBankForm() {
   const [success, setSuccess] = useState<string | null>(null)
   
   const handleTochkaConnect = () => {
-    window.location.href = '/api/auth/tochka'
+    window.location.href = '/api/banks/tochka'
   }
   
   const handleTBankConnect = async (e: React.FormEvent) => {
@@ -23,7 +23,7 @@ export function ConnectBankForm() {
     setSuccess(null)
     
     try {
-      const res = await fetch('/api/auth/tbank', {
+      const res = await fetch('/api/banks/tbank', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: tbankToken }),
