@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useFullscreen } from '@/hooks/useFullscreen'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
+import { useBankSync } from '@/hooks/useBankSync'
 import { formatCurrency, formatPercent } from '@/lib/format'
 
 type PaceStatus = 'ahead' | 'ontrack' | 'behind' | 'atrisk'
@@ -62,8 +63,14 @@ export function TVDashboard({ data }: TVDashboardProps) {
   const { isFullscreen, toggleFullscreen } = useFullscreen()
   const [time, setTime] = useState(new Date())
   
-  // Auto-refresh every 30 seconds
+  // Auto-refresh page every 30 seconds
   useAutoRefresh(30_000)
+  
+  // Sync banks every 10 minutes while TV is open
+  const { isSyncing, lastSync } = useBankSync({
+    intervalMs: 10 * 60 * 1000,
+    syncOnMount: true,
+  })
   
   // Update clock every second
   useEffect(() => {
@@ -95,8 +102,10 @@ export function TVDashboard({ data }: TVDashboardProps) {
             {time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
           </div>
           <div className="flex items-center gap-2 text-gray-500 justify-end">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm">LIVE</span>
+            <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
+            <span className="text-sm">
+              {isSyncing ? 'SYNC' : 'LIVE'}
+            </span>
             {!isFullscreen && (
               <span className="text-xs text-gray-600 ml-2">
                 (клик для fullscreen)

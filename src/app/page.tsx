@@ -5,10 +5,10 @@ import { GoalProgress } from '@/components/GoalProgress'
 import { TodayStats } from '@/components/TodayStats'
 import { LiveIndicator } from '@/components/LiveIndicator'
 import { AutoRefresh } from '@/components/AutoRefresh'
+import { SyncStatus } from '@/components/SyncStatus'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 60
 
 async function getActiveGoal() {
   const [goal] = await db
@@ -148,7 +148,9 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen p-8 flex flex-col">
+      {/* Auto-refresh UI every minute, sync banks every 10 min */}
       <AutoRefresh intervalMs={60_000} />
+      <SyncStatus intervalMinutes={10} />
       
       {/* Header */}
       <header className="flex justify-between items-start mb-8">
@@ -161,7 +163,10 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-4">
           <LiveIndicator />
           <Link href="/tv" className="text-gray-500 hover:text-white text-sm">
-            📺 TV Mode
+            📺 TV
+          </Link>
+          <Link href="/transactions" className="text-gray-500 hover:text-white text-sm">
+            💰
           </Link>
           <Link href="/settings" className="text-gray-500 hover:text-white text-sm">
             ⚙️

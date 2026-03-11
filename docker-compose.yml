@@ -7,7 +7,6 @@ services:
       - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/goal_dashboard
-      - CRON_SECRET=${CRON_SECRET:-your-secret-here}
       - TOCHKA_CLIENT_ID=${TOCHKA_CLIENT_ID:-}
       - TOCHKA_CLIENT_SECRET=${TOCHKA_CLIENT_SECRET:-}
       - TOCHKA_REDIRECT_URI=${TOCHKA_REDIRECT_URI:-http://localhost:3000/api/auth/tochka/callback}
@@ -31,16 +30,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
-
-  # Optional: run sync on schedule
-  sync:
-    build: .
-    command: sh -c "while true; do sleep 900; wget -qO- --header='Authorization: Bearer $${CRON_SECRET}' http://app:3000/api/sync -X POST || true; done"
-    environment:
-      - CRON_SECRET=${CRON_SECRET:-your-secret-here}
-    depends_on:
-      - app
     restart: unless-stopped
 
 volumes:

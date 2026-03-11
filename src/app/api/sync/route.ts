@@ -1,36 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, bankAccounts, transactions, syncLogs } from '@/db'
-import { eq } from 'drizzle-orm'
+import { eq, and, gte } from 'drizzle-orm'
 import { TochkaClient } from '@/lib/banks/tochka'
 import { TBankClient } from '@/lib/banks/tbank'
-import { subDays } from 'date-fns'
+import { subDays, subMinutes } from 'date-fns'
 
-// POST /api/sync - Trigger sync for all accounts
+// POST /api/sync - Sync transactions from banks
+// Called from client-side polling when dashboard is open
 export async function POST(request: NextRequest) {
-  // Optional: verify cron secret
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-  
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  
   const accounts = await db
     .select()
     .from(bankAccounts)
     .where(eq(bankAccounts.isActive, true))
   
+  if (accounts.length === 0) {
+    return NextResponse.json({ 
+      message: 'No accounts connected',
+      synced: 0 
+    })
+  }
+  
   const results = []
+  let totalAdded = 0
   
   for (const account of accounts) {
-    const [log] = await db
-      .insert(syncLogs)
-      .values({
-        bankAccountId: account.id,
-        status: 'RUNNING',
-        startedAt: new Date(),
+    // Skip if synced less than 5 minutes ago
+    if (account.lastSyncAt && account.lastSyncAt > subMinutes(new Date(), 5)) {
+      results.push({
+        accountId: account.id,
+        bank: account.bank,
+        status: 'skipped',
+        reason: 'synced recently',
       })
-      .returning()
+      continue
+    }
     
     try {
       let client
@@ -51,10 +54,10 @@ export async function POST(request: NextRequest) {
           token: account.accessToken!,
         })
       } else {
-        throw new Error(`Unknown bank: ${account.bank}`)
+        continue
       }
       
-      // Fetch transactions for last 7 days
+      // Fetch last 7 days of transactions
       const toDate = new Date()
       const fromDate = subDays(toDate, 7)
       
@@ -67,37 +70,34 @@ export async function POST(request: NextRequest) {
       // Upsert transactions
       let added = 0
       for (const tx of txs) {
-        try {
-          await db
-            .insert(transactions)
-            .values({
-              bankAccountId: account.id,
-              externalId: tx.id,
-              amount: tx.amount.toString(),
-              currency: tx.currency,
-              type: tx.type === 'income' ? 'INCOME' : 'EXPENSE',
-              counterparty: tx.counterparty,
-              description: tx.description,
-              executedAt: tx.executedAt,
-            })
-            .onConflictDoNothing()
-          
+        // Check if exists
+        const [existing] = await db
+          .select()
+          .from(transactions)
+          .where(and(
+            eq(transactions.bankAccountId, account.id),
+            eq(transactions.externalId, tx.id)
+          ))
+          .limit(1)
+        
+        if (!existing) {
+          await db.insert(transactions).values({
+            bankAccountId: account.id,
+            externalId: tx.id,
+            amount: tx.amount.toString(),
+            currency: tx.currency,
+            type: tx.type === 'income' ? 'INCOME' : 'EXPENSE',
+            counterparty: tx.counterparty,
+            description: tx.description,
+            executedAt: tx.executedAt,
+          })
           added++
-        } catch {
-          // Ignore duplicates
         }
       }
       
-      // Update sync status
-      await db
-        .update(syncLogs)
-        .set({
-          status: 'SUCCESS',
-          transactionsAdded: added.toString(),
-          completedAt: new Date(),
-        })
-        .where(eq(syncLogs.id, log.id))
+      totalAdded += added
       
+      // Update last sync time
       await db
         .update(bankAccounts)
         .set({ lastSyncAt: new Date(), updatedAt: new Date() })
@@ -107,22 +107,14 @@ export async function POST(request: NextRequest) {
         accountId: account.id,
         bank: account.bank,
         status: 'success',
-        transactionsAdded: added,
+        fetched: txs.length,
+        added,
       })
     } catch (error) {
-      await db
-        .update(syncLogs)
-        .set({
-          status: 'FAILED',
-          message: error instanceof Error ? error.message : 'Unknown error',
-          completedAt: new Date(),
-        })
-        .where(eq(syncLogs.id, log.id))
-      
       results.push({
         accountId: account.id,
         bank: account.bank,
-        status: 'failed',
+        status: 'error',
         error: error instanceof Error ? error.message : 'Unknown error',
       })
     }
@@ -130,6 +122,27 @@ export async function POST(request: NextRequest) {
   
   return NextResponse.json({
     syncedAt: new Date().toISOString(),
+    totalAdded,
     results,
+  })
+}
+
+// GET /api/sync - Get sync status
+export async function GET() {
+  const accounts = await db
+    .select({
+      id: bankAccounts.id,
+      bank: bankAccounts.bank,
+      accountName: bankAccounts.accountName,
+      lastSyncAt: bankAccounts.lastSyncAt,
+    })
+    .from(bankAccounts)
+    .where(eq(bankAccounts.isActive, true))
+  
+  return NextResponse.json({
+    accounts,
+    canSync: accounts.some(a => 
+      !a.lastSyncAt || a.lastSyncAt < subMinutes(new Date(), 5)
+    ),
   })
 }
