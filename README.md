@@ -2,22 +2,20 @@
 
 Real-time revenue tracking dashboard for teams. Set a goal, watch your progress on a big screen.
 
-![Dashboard Preview](docs/preview.png)
-
 ## Features
 
 - **Goal-driven** — Set monthly/quarterly revenue targets
 - **Multi-bank** — Aggregate data from multiple Russian banks (Точка, Т-Банк)
-- **Real-time** — Auto-refresh every 5-15 minutes
+- **Real-time** — Auto-refresh every minute
 - **TV-optimized** — Large, readable numbers for office projectors
 - **Progress tracking** — Visual progress bar with pace indicator
 - **Forecasting** — Predict goal completion date based on current pace
 
 ## Tech Stack
 
-- **Frontend:** Next.js 14, React, Tailwind CSS
-- **Backend:** Node.js, Express
-- **Database:** PostgreSQL
+- **Framework:** Next.js 14 (App Router + API Routes)
+- **Database:** PostgreSQL + Prisma
+- **Styling:** Tailwind CSS
 - **Bank APIs:** Точка Open API, Т-Банк T-API
 
 ## Quick Start
@@ -30,9 +28,10 @@ cd goal-dashboard
 # Install
 pnpm install
 
-# Configure
+# Setup database
 cp .env.example .env.local
-# Edit .env.local with your bank credentials
+# Edit .env.local with your database URL
+pnpm db:push
 
 # Run
 pnpm dev
@@ -40,25 +39,47 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
-## Configuration
+## API Routes
 
-### Environment Variables
+### Goals
+- `GET /api/goals` — List all active goals
+- `POST /api/goals` — Create new goal
+- `GET /api/goals/[id]` — Get goal with progress
+- `GET /api/goals/[id]/stats` — Get today/yesterday stats
+- `DELETE /api/goals/[id]` — Deactivate goal
+
+### Bank Accounts
+- `GET /api/accounts` — List connected accounts
+- `GET /api/accounts/[id]` — Get account details
+- `DELETE /api/accounts/[id]` — Disconnect account
+
+### Auth
+- `GET /api/auth/tochka` — Start Точка OAuth flow
+- `GET /api/auth/tochka/callback` — OAuth callback
+- `POST /api/auth/tbank` — Connect Т-Банк with token
+
+### Sync
+- `POST /api/sync` — Trigger transaction sync (call via cron)
+
+## Environment Variables
 
 ```env
 # Database
 DATABASE_URL=postgresql://user:pass@localhost:5432/goal_dashboard
 
-# Точка Bank
-TOCHKA_CLIENT_ID=your_client_id
-TOCHKA_CLIENT_SECRET=your_client_secret
+# Точка Bank (OAuth 2.0)
+TOCHKA_CLIENT_ID=
+TOCHKA_CLIENT_SECRET=
 TOCHKA_REDIRECT_URI=http://localhost:3000/api/auth/tochka/callback
 
-# Т-Банк
-TBANK_TOKEN=your_token
-TBANK_CERTIFICATE_PATH=/path/to/cert.pem
+# Т-Банк (Token)
+# Token is stored per-account in database
+
+# Sync protection
+CRON_SECRET=your_secret_here
 ```
 
-### Bank Setup
+## Bank Setup
 
 <details>
 <summary>Точка Bank</summary>
@@ -76,39 +97,21 @@ TBANK_CERTIFICATE_PATH=/path/to/cert.pem
 
 1. Go to Services → Integrations → API Integration → Connect
 2. Issue token with required permissions
-3. Generate certificate
-4. Copy credentials to `.env.local`
+3. Call `POST /api/auth/tbank` with your token
 
 [Full documentation](https://developer.tbank.ru/docs/api/)
 </details>
 
-## Architecture
+## Cron Setup
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Точка API  │────▶│             │     │             │
-└─────────────┘     │   Sync      │────▶│  PostgreSQL │
-┌─────────────┐     │   Worker    │     │             │
-│ Т-Банк API  │────▶│             │     └──────┬──────┘
-└─────────────┘     └─────────────┘            │
-                                               ▼
-                                     ┌─────────────────┐
-                                     │   Next.js App   │
-                                     │  (Dashboard UI) │
-                                     └─────────────────┘
+Set up a cron job to sync transactions periodically:
+
+```bash
+# Every 15 minutes
+*/15 * * * * curl -X POST https://your-domain/api/sync -H "Authorization: Bearer $CRON_SECRET"
 ```
 
-## Roadmap
-
-- [x] Project setup
-- [ ] Bank OAuth integration (Точка)
-- [ ] Bank token integration (Т-Банк)
-- [ ] Transaction sync worker
-- [ ] Goal management UI
-- [ ] Progress dashboard
-- [ ] Forecasting algorithm
-- [ ] TV/Kiosk mode
-- [ ] Telegram alerts
+Or use Vercel Cron, Railway Cron, etc.
 
 ## License
 
