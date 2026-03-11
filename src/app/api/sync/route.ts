@@ -1,13 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, bankAccounts, transactions, syncLogs } from '@/db'
-import { eq, and, gte } from 'drizzle-orm'
+import { db, bankAccounts, transactions } from '@/db'
+import { eq } from 'drizzle-orm'
 import { TochkaClient } from '@/lib/banks/tochka'
 import { TBankClient } from '@/lib/banks/tbank'
+import { safeDecryptToken, encryptToken } from '@/lib/crypto'
+import { checkRateLimit, getClientId } from '@/lib/rate-limit'
 import { subDays, subMinutes } from 'date-fns'
 
+const MAX_RETRIES = 3
+const RETRY_DELAY_MS = 1000
+
+// Rate limit: 10 requests per minute per client
+const RATE_LIMIT = { limit: 10, windowMs: 60_000 }
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = MAX_RETRIES
+): Promise<T> {
+  let lastError: Error | null = null
+  
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      
+      // Don't retry on auth errors
+      if (lastError.message.includes('401') || lastError.message.includes('403')) {
+        throw lastError
+      }
+      
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (i + 1)))
+      }
+    }
+  }
+  
+  throw lastError
+}
+
 // POST /api/sync - Sync transactions from banks
-// Called from client-side polling when dashboard is open
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const clientId = getClientId(request)
+  const rateLimit = checkRateLimit(`sync:${clientId}`, RATE_LIMIT)
+  
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Too many requests', retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000) },
+      { 
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+        },
+      }
+    )
+  }
+  
   const accounts = await db
     .select()
     .from(bankAccounts)
@@ -16,7 +65,8 @@ export async function POST(request: NextRequest) {
   if (accounts.length === 0) {
     return NextResponse.json({ 
       message: 'No accounts connected',
-      synced: 0 
+      totalAdded: 0,
+      results: [],
     })
   }
   
@@ -35,63 +85,97 @@ export async function POST(request: NextRequest) {
       continue
     }
     
+    // Decrypt tokens
+    const accessToken = safeDecryptToken(account.accessToken)
+    const refreshToken = safeDecryptToken(account.refreshToken)
+    
+    if (!accessToken) {
+      results.push({
+        accountId: account.id,
+        bank: account.bank,
+        status: 'error',
+        error: 'Invalid or missing access token',
+      })
+      continue
+    }
+    
     try {
-      let client
+      let txs: Awaited<ReturnType<typeof TochkaClient.prototype.getTransactions>>
       
       if (account.bank === 'TOCHKA') {
-        client = new TochkaClient({
+        const client = new TochkaClient({
           clientId: process.env.TOCHKA_CLIENT_ID!,
           clientSecret: process.env.TOCHKA_CLIENT_SECRET!,
-          accessToken: account.accessToken || undefined,
-          refreshToken: account.refreshToken || undefined,
+          accessToken,
+          refreshToken: refreshToken || undefined,
+          // Save refreshed tokens back to DB
+          onTokenRefresh: async (newAccess, newRefresh) => {
+            await db
+              .update(bankAccounts)
+              .set({
+                accessToken: encryptToken(newAccess),
+                refreshToken: encryptToken(newRefresh),
+                updatedAt: new Date(),
+              })
+              .where(eq(bankAccounts.id, account.id))
+          },
         })
         
-        if (account.refreshToken) {
-          await client.refreshTokenIfNeeded()
-        }
+        // Fetch last 7 days of transactions with retry
+        const toDate = new Date()
+        const fromDate = subDays(toDate, 7)
+        
+        txs = await withRetry(() => 
+          client.getTransactions(account.accountId, fromDate, toDate)
+        )
       } else if (account.bank === 'TBANK') {
-        client = new TBankClient({
-          token: account.accessToken!,
+        const client = new TBankClient({
+          token: accessToken,
+          // mTLS certs would be configured via env vars
+          certificatePath: process.env.TBANK_CERT_PATH,
+          certificateKeyPath: process.env.TBANK_KEY_PATH,
+          certificatePassword: process.env.TBANK_CERT_PASSWORD,
         })
+        
+        const toDate = new Date()
+        const fromDate = subDays(toDate, 7)
+        
+        txs = await withRetry(() =>
+          client.getTransactions(account.accountId, fromDate, toDate)
+        )
       } else {
         continue
       }
       
-      // Fetch last 7 days of transactions
-      const toDate = new Date()
-      const fromDate = subDays(toDate, 7)
-      
-      const txs = await client.getTransactions(
-        account.accountId,
-        fromDate,
-        toDate
-      )
-      
-      // Upsert transactions
+      // Batch insert with conflict handling
       let added = 0
-      for (const tx of txs) {
-        // Check if exists
-        const [existing] = await db
-          .select()
-          .from(transactions)
-          .where(and(
-            eq(transactions.bankAccountId, account.id),
-            eq(transactions.externalId, tx.id)
-          ))
-          .limit(1)
+      
+      if (txs.length > 0) {
+        const values = txs.map(tx => ({
+          bankAccountId: account.id,
+          externalId: tx.id,
+          amount: tx.amount.toString(),
+          currency: tx.currency,
+          type: tx.type === 'income' ? 'INCOME' as const : 'EXPENSE' as const,
+          counterparty: tx.counterparty,
+          description: tx.description,
+          executedAt: tx.executedAt,
+        }))
         
-        if (!existing) {
-          await db.insert(transactions).values({
-            bankAccountId: account.id,
-            externalId: tx.id,
-            amount: tx.amount.toString(),
-            currency: tx.currency,
-            type: tx.type === 'income' ? 'INCOME' : 'EXPENSE',
-            counterparty: tx.counterparty,
-            description: tx.description,
-            executedAt: tx.executedAt,
-          })
-          added++
+        // Insert in batches of 100
+        const batchSize = 100
+        for (let i = 0; i < values.length; i += batchSize) {
+          const batch = values.slice(i, i + batchSize)
+          
+          const result = await db
+            .insert(transactions)
+            .values(batch)
+            .onConflictDoNothing({
+              target: [transactions.bankAccountId, transactions.externalId],
+            })
+            .returning({ id: transactions.id })
+          
+          added += result.length
         }
       }
       
@@ -111,6 +195,8 @@ export async function POST(request: NextRequest) {
         added,
       })
     } catch (error) {
+      console.error(`Sync error for ${account.bank} ${account.accountId}:`, error)
+      
       results.push({
         accountId: account.id,
         bank: account.bank,

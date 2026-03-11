@@ -2,29 +2,49 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db, bankAccounts } from '@/db'
 import { eq, and } from 'drizzle-orm'
 import { TBankClient } from '@/lib/banks/tbank'
+import { encryptToken } from '@/lib/crypto'
 import { z } from 'zod'
 
 const connectSchema = z.object({
-  token: z.string().min(1),
+  token: z.string().min(1, 'Token is required'),
+  certificatePath: z.string().optional(),
+  certificateKeyPath: z.string().optional(),
+  certificatePassword: z.string().optional(),
 })
 
 // POST /api/auth/tbank - Connect T-Bank with token
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { token } = connectSchema.parse(body)
+    const data = connectSchema.parse(body)
     
-    const client = new TBankClient({ token })
+    const client = new TBankClient({
+      token: data.token,
+      certificatePath: data.certificatePath,
+      certificateKeyPath: data.certificateKeyPath,
+      certificatePassword: data.certificatePassword,
+    })
     
     // Verify token by fetching accounts
-    const accounts = await client.getAccounts()
-    
-    if (accounts.length === 0) {
+    let accounts
+    try {
+      accounts = await client.getAccounts()
+    } catch (error) {
       return NextResponse.json(
-        { error: 'No accounts found' },
+        { error: 'Invalid token or API error. Make sure mTLS certificate is configured if required.' },
         { status: 400 }
       )
     }
+    
+    if (accounts.length === 0) {
+      return NextResponse.json(
+        { error: 'No accounts found for this token' },
+        { status: 400 }
+      )
+    }
+    
+    // Encrypt token before storing
+    const encryptedToken = encryptToken(data.token)
     
     // Save accounts to database
     const savedAccounts = []
@@ -46,7 +66,7 @@ export async function POST(request: NextRequest) {
         [saved] = await db
           .update(bankAccounts)
           .set({
-            accessToken: token,
+            accessToken: encryptedToken,
             isActive: true,
             updatedAt: new Date(),
           })
@@ -60,7 +80,7 @@ export async function POST(request: NextRequest) {
             accountId: account.id,
             accountName: account.name,
             currency: account.currency,
-            accessToken: token,
+            accessToken: encryptedToken,
           })
           .returning()
       }

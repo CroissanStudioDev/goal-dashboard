@@ -5,14 +5,17 @@
  */
 
 import axios, { AxiosInstance } from 'axios'
+import https from 'https'
+import fs from 'fs'
 import { BankClient, BankAccount, BankTransaction } from './types'
 
 const API_URL = 'https://api.tbank.ru/v1'
 
 interface TBankConfig {
   token: string
-  // Certificate path for mTLS (required for production)
+  // mTLS certificate (required for production)
   certificatePath?: string
+  certificateKeyPath?: string
   certificatePassword?: string
 }
 
@@ -23,24 +26,45 @@ export class TBankClient implements BankClient {
   constructor(config: TBankConfig) {
     this.config = config
     
-    // TODO: Add mTLS certificate support for production
+    // Create HTTPS agent with mTLS if certificate provided
+    let httpsAgent: https.Agent | undefined
+    
+    if (config.certificatePath && config.certificateKeyPath) {
+      try {
+        httpsAgent = new https.Agent({
+          cert: fs.readFileSync(config.certificatePath),
+          key: fs.readFileSync(config.certificateKeyPath),
+          passphrase: config.certificatePassword,
+          rejectUnauthorized: true,
+        })
+      } catch (error) {
+        console.warn('Failed to load T-Bank certificate, mTLS disabled:', error)
+      }
+    }
+    
     this.api = axios.create({
       baseURL: API_URL,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.token}`,
       },
+      timeout: 30_000,
+      ...(httpsAgent && { httpsAgent }),
     })
   }
   
   async getAccounts(): Promise<BankAccount[]> {
     const response = await this.api.get('/bank-accounts')
     
-    return response.data.map((acc: any) => ({
-      id: acc.accountNumber,
-      name: acc.name || acc.accountNumber,
-      currency: acc.currency?.name || 'RUB',
-      balance: acc.balance?.otb,
+    const accounts = Array.isArray(response.data) 
+      ? response.data 
+      : response.data.accounts || []
+    
+    return accounts.map((acc: any) => ({
+      id: acc.accountNumber || acc.id,
+      name: acc.name || acc.accountNumber || acc.id,
+      currency: acc.currency?.name || acc.currency || 'RUB',
+      balance: acc.balance?.otb ?? acc.balance,
     }))
   }
   
@@ -57,16 +81,16 @@ export class TBankClient implements BankClient {
       },
     })
     
-    const operations = response.data.operation || []
+    const operations = response.data.operation || response.data.operations || []
     
     return operations.map((op: any) => ({
-      id: op.id || op.operationId,
-      amount: Math.abs(op.amount),
-      currency: op.currency?.name || 'RUB',
-      type: op.amount > 0 ? 'income' : 'expense',
-      counterparty: op.counterparty?.name,
-      description: op.description,
-      executedAt: new Date(op.date),
+      id: op.id || op.operationId || `${op.date}-${op.amount}`,
+      amount: Math.abs(Number(op.amount) || 0),
+      currency: op.currency?.name || op.currency || 'RUB',
+      type: Number(op.amount) > 0 ? 'income' as const : 'expense' as const,
+      counterparty: op.counterparty?.name || op.counterpartyName,
+      description: op.description || op.purpose,
+      executedAt: new Date(op.date || op.operationDate),
     }))
   }
 }
