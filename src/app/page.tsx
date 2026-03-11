@@ -1,44 +1,41 @@
 import { GoalProgress } from '@/components/GoalProgress'
 import { TodayStats } from '@/components/TodayStats'
 import { LiveIndicator } from '@/components/LiveIndicator'
-import { prisma } from '@/lib/db'
+import { db, goals, transactions } from '@/db'
+import { eq, and, gte, lte, lt, inArray, desc } from 'drizzle-orm'
 import { startOfDay, subDays } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 60 // Revalidate every minute
+export const revalidate = 60
 
 async function getActiveGoal() {
-  return prisma.goal.findFirst({
-    where: { isActive: true },
-    orderBy: { createdAt: 'desc' },
-  })
+  const [goal] = await db
+    .select()
+    .from(goals)
+    .where(eq(goals.isActive, true))
+    .orderBy(desc(goals.createdAt))
+    .limit(1)
+  
+  return goal
 }
 
-async function getGoalProgress(goalId: string) {
-  const goal = await prisma.goal.findUnique({
-    where: { id: goalId },
-  })
+async function getGoalProgress(goal: typeof goals.$inferSelect) {
+  const conditions = [
+    gte(transactions.executedAt, goal.startDate),
+    lte(transactions.executedAt, goal.endDate),
+    eq(transactions.type, goal.trackIncome ? 'INCOME' : 'EXPENSE'),
+  ]
   
-  if (!goal) return null
+  if (goal.accountIds.length > 0) {
+    conditions.push(inArray(transactions.bankAccountId, goal.accountIds))
+  }
   
-  const transactions = await prisma.transaction.findMany({
-    where: {
-      executedAt: {
-        gte: goal.startDate,
-        lte: goal.endDate,
-      },
-      ...(goal.accountIds.length > 0 && {
-        bankAccountId: { in: goal.accountIds },
-      }),
-      type: goal.trackIncome ? 'INCOME' : 'EXPENSE',
-    },
-  })
+  const txs = await db
+    .select()
+    .from(transactions)
+    .where(and(...conditions))
   
-  const current = transactions.reduce(
-    (sum, tx) => sum + Number(tx.amount),
-    0
-  )
-  
+  const current = txs.reduce((sum, tx) => sum + Number(tx.amount), 0)
   const target = Number(goal.targetAmount)
   
   // Calculate pace
@@ -68,7 +65,6 @@ async function getGoalProgress(goalId: string) {
   const forecastDate = new Date(now.getTime() + daysToComplete * 24 * 60 * 60 * 1000)
   
   return {
-    goal,
     current,
     target,
     pace: {
@@ -82,25 +78,29 @@ async function getGoalProgress(goalId: string) {
   }
 }
 
-async function getDayStats(goal: { accountIds: string[], trackIncome: boolean }) {
+async function getDayStats(goal: typeof goals.$inferSelect) {
   const now = new Date()
   const todayStart = startOfDay(now)
   const yesterdayStart = startOfDay(subDays(now, 1))
   
-  const baseWhere = {
-    ...(goal.accountIds.length > 0 && {
-      bankAccountId: { in: goal.accountIds },
-    }),
-    type: goal.trackIncome ? 'INCOME' as const : 'EXPENSE' as const,
+  const baseConditions = [
+    eq(transactions.type, goal.trackIncome ? 'INCOME' : 'EXPENSE'),
+  ]
+  
+  if (goal.accountIds.length > 0) {
+    baseConditions.push(inArray(transactions.bankAccountId, goal.accountIds))
   }
   
   const [todayTx, yesterdayTx] = await Promise.all([
-    prisma.transaction.findMany({
-      where: { ...baseWhere, executedAt: { gte: todayStart } },
-    }),
-    prisma.transaction.findMany({
-      where: { ...baseWhere, executedAt: { gte: yesterdayStart, lt: todayStart } },
-    }),
+    db.select().from(transactions).where(and(
+      ...baseConditions,
+      gte(transactions.executedAt, todayStart)
+    )),
+    db.select().from(transactions).where(and(
+      ...baseConditions,
+      gte(transactions.executedAt, yesterdayStart),
+      lt(transactions.executedAt, todayStart)
+    )),
   ])
   
   return {
@@ -118,7 +118,6 @@ async function getDayStats(goal: { accountIds: string[], trackIncome: boolean })
 export default async function DashboardPage() {
   const goal = await getActiveGoal()
   
-  // No goal set - show setup prompt
   if (!goal) {
     return (
       <main className="min-h-screen p-8 flex flex-col items-center justify-center">
@@ -135,23 +134,17 @@ export default async function DashboardPage() {
   }
   
   const [progress, stats] = await Promise.all([
-    getGoalProgress(goal.id),
+    getGoalProgress(goal),
     getDayStats(goal),
   ])
-  
-  if (!progress) {
-    return <div>Error loading goal</div>
-  }
 
   return (
     <main className="min-h-screen p-8 flex flex-col">
-      {/* Header */}
       <header className="flex justify-between items-start mb-8">
         <h1 className="text-2xl text-gray-400">{goal.name}</h1>
         <LiveIndicator />
       </header>
 
-      {/* Main progress */}
       <div className="flex-1 flex flex-col justify-center">
         <GoalProgress
           current={progress.current}
@@ -161,7 +154,6 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Footer stats */}
       <footer className="mt-8">
         <TodayStats
           today={stats.today}

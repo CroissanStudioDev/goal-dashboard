@@ -1,34 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { db, goals, transactions } from '@/db'
+import { eq, and, gte, lte, inArray } from 'drizzle-orm'
 
 // GET /api/goals/[id] - Get goal with progress
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const goal = await prisma.goal.findUnique({
-    where: { id: params.id },
-  })
+  const [goal] = await db
+    .select()
+    .from(goals)
+    .where(eq(goals.id, params.id))
+    .limit(1)
   
   if (!goal) {
     return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
   }
   
-  // Calculate progress
-  const transactions = await prisma.transaction.findMany({
-    where: {
-      executedAt: {
-        gte: goal.startDate,
-        lte: goal.endDate,
-      },
-      ...(goal.accountIds.length > 0 && {
-        bankAccountId: { in: goal.accountIds },
-      }),
-      type: goal.trackIncome ? 'INCOME' : 'EXPENSE',
-    },
-  })
+  // Build where conditions
+  const conditions = [
+    gte(transactions.executedAt, goal.startDate),
+    lte(transactions.executedAt, goal.endDate),
+    eq(transactions.type, goal.trackIncome ? 'INCOME' : 'EXPENSE'),
+  ]
   
-  const current = transactions.reduce(
+  if (goal.accountIds.length > 0) {
+    conditions.push(inArray(transactions.bankAccountId, goal.accountIds))
+  }
+  
+  const txs = await db
+    .select()
+    .from(transactions)
+    .where(and(...conditions))
+  
+  const current = txs.reduce(
     (sum, tx) => sum + Number(tx.amount),
     0
   )
@@ -65,7 +70,7 @@ export async function GET(
       current,
       target,
       percent,
-      transactionCount: transactions.length,
+      transactionCount: txs.length,
     },
     pace: {
       status,
@@ -81,10 +86,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  await prisma.goal.update({
-    where: { id: params.id },
-    data: { isActive: false },
-  })
+  await db
+    .update(goals)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(goals.id, params.id))
   
   return new NextResponse(null, { status: 204 })
 }

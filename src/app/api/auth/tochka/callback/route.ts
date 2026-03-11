@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { db, bankAccounts } from '@/db'
+import { eq, and } from 'drizzle-orm'
 import { TochkaClient } from '@/lib/banks/tochka'
 
 // GET /api/auth/tochka/callback - OAuth callback
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get('code')
-  const state = searchParams.get('state')
   const error = searchParams.get('error')
   
   if (error) {
@@ -20,8 +20,6 @@ export async function GET(request: NextRequest) {
       new URL('/?error=missing_code', request.url)
     )
   }
-  
-  // TODO: Verify state matches stored value
   
   const client = new TochkaClient({
     clientId: process.env.TOCHKA_CLIENT_ID!,
@@ -40,29 +38,40 @@ export async function GET(request: NextRequest) {
     
     // Save accounts to database
     for (const account of accounts) {
-      await prisma.bankAccount.upsert({
-        where: {
-          bank_accountId: {
+      // Check if exists
+      const [existing] = await db
+        .select()
+        .from(bankAccounts)
+        .where(and(
+          eq(bankAccounts.bank, 'TOCHKA'),
+          eq(bankAccounts.accountId, account.id)
+        ))
+        .limit(1)
+      
+      if (existing) {
+        await db
+          .update(bankAccounts)
+          .set({
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            tokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
+            isActive: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(bankAccounts.id, existing.id))
+      } else {
+        await db
+          .insert(bankAccounts)
+          .values({
             bank: 'TOCHKA',
             accountId: account.id,
-          },
-        },
-        update: {
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-          tokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
-          isActive: true,
-        },
-        create: {
-          bank: 'TOCHKA',
-          accountId: account.id,
-          accountName: account.name,
-          currency: account.currency,
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-          tokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
-        },
-      })
+            accountName: account.name,
+            currency: account.currency,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            tokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
+          })
+      }
     }
     
     return NextResponse.redirect(

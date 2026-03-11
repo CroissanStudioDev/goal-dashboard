@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { db, goals, transactions } from '@/db'
+import { eq, and, gte, lt, inArray } from 'drizzle-orm'
 import { startOfDay, subDays } from 'date-fns'
 
 // GET /api/goals/[id]/stats - Get today/yesterday stats
@@ -7,9 +8,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const goal = await prisma.goal.findUnique({
-    where: { id: params.id },
-  })
+  const [goal] = await db
+    .select()
+    .from(goals)
+    .where(eq(goals.id, params.id))
+    .limit(1)
   
   if (!goal) {
     return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
@@ -19,33 +22,29 @@ export async function GET(
   const todayStart = startOfDay(now)
   const yesterdayStart = startOfDay(subDays(now, 1))
   
-  const baseWhere = {
-    ...(goal.accountIds.length > 0 && {
-      bankAccountId: { in: goal.accountIds },
-    }),
-    type: goal.trackIncome ? 'INCOME' as const : 'EXPENSE' as const,
+  const baseConditions = [
+    eq(transactions.type, goal.trackIncome ? 'INCOME' : 'EXPENSE'),
+  ]
+  
+  if (goal.accountIds.length > 0) {
+    baseConditions.push(inArray(transactions.bankAccountId, goal.accountIds))
   }
   
   // Today's transactions
-  const todayTx = await prisma.transaction.findMany({
-    where: {
-      ...baseWhere,
-      executedAt: {
-        gte: todayStart,
-      },
-    },
-  })
+  const todayTx = await db
+    .select()
+    .from(transactions)
+    .where(and(...baseConditions, gte(transactions.executedAt, todayStart)))
   
   // Yesterday's transactions
-  const yesterdayTx = await prisma.transaction.findMany({
-    where: {
-      ...baseWhere,
-      executedAt: {
-        gte: yesterdayStart,
-        lt: todayStart,
-      },
-    },
-  })
+  const yesterdayTx = await db
+    .select()
+    .from(transactions)
+    .where(and(
+      ...baseConditions,
+      gte(transactions.executedAt, yesterdayStart),
+      lt(transactions.executedAt, todayStart)
+    ))
   
   return NextResponse.json({
     today: {

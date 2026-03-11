@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { db, goals } from '@/db'
+import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 const createGoalSchema = z.object({
@@ -15,12 +16,13 @@ const createGoalSchema = z.object({
 
 // GET /api/goals - List all goals
 export async function GET() {
-  const goals = await prisma.goal.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: 'desc' },
-  })
+  const result = await db
+    .select()
+    .from(goals)
+    .where(eq(goals.isActive, true))
+    .orderBy(desc(goals.createdAt))
   
-  return NextResponse.json(goals)
+  return NextResponse.json(result)
 }
 
 // POST /api/goals - Create new goal
@@ -29,18 +31,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = createGoalSchema.parse(body)
     
-    const goal = await prisma.goal.create({
-      data: {
+    const [goal] = await db
+      .insert(goals)
+      .values({
         name: data.name,
-        targetAmount: data.targetAmount,
+        targetAmount: data.targetAmount.toString(),
         currency: data.currency,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         accountIds: data.accountIds || [],
         trackIncome: data.trackIncome,
         trackExpense: data.trackExpense,
-      },
-    })
+      })
+      .returning()
     
     return NextResponse.json(goal, { status: 201 })
   } catch (error) {

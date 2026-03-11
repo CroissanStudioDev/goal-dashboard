@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { db, bankAccounts } from '@/db'
+import { eq, and } from 'drizzle-orm'
 import { TBankClient } from '@/lib/banks/tbank'
 import { z } from 'zod'
 
@@ -29,25 +30,40 @@ export async function POST(request: NextRequest) {
     const savedAccounts = []
     
     for (const account of accounts) {
-      const saved = await prisma.bankAccount.upsert({
-        where: {
-          bank_accountId: {
+      // Check if exists
+      const [existing] = await db
+        .select()
+        .from(bankAccounts)
+        .where(and(
+          eq(bankAccounts.bank, 'TBANK'),
+          eq(bankAccounts.accountId, account.id)
+        ))
+        .limit(1)
+      
+      let saved
+      
+      if (existing) {
+        [saved] = await db
+          .update(bankAccounts)
+          .set({
+            accessToken: token,
+            isActive: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(bankAccounts.id, existing.id))
+          .returning()
+      } else {
+        [saved] = await db
+          .insert(bankAccounts)
+          .values({
             bank: 'TBANK',
             accountId: account.id,
-          },
-        },
-        update: {
-          accessToken: token,
-          isActive: true,
-        },
-        create: {
-          bank: 'TBANK',
-          accountId: account.id,
-          accountName: account.name,
-          currency: account.currency,
-          accessToken: token,
-        },
-      })
+            accountName: account.name,
+            currency: account.currency,
+            accessToken: token,
+          })
+          .returning()
+      }
       
       savedAccounts.push({
         id: saved.id,

@@ -5,18 +5,21 @@
   "description": "Real-time revenue tracking dashboard with goal progress",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "next": "^14.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "@prisma/client": "^5.14.0",
+    "drizzle-orm": "^0.30.0",
+    "postgres": "^3.4.0",
+    "@paralleldrive/cuid2": "^2.2.0",
     "axios": "^1.7.0",
     "date-fns": "^3.6.0",
     "zod": "^3.23.0"
@@ -26,7 +29,7 @@
     "@types/node": "^20.12.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
-    "prisma": "^5.14.0",
+    "drizzle-kit": "^0.21.0",
     "tailwindcss": "^3.4.0",
     "postcss": "^8.4.0",
     "autoprefixer": "^10.4.0",

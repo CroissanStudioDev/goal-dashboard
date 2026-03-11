@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { db, bankAccounts, transactions, syncLogs } from '@/db'
+import { eq } from 'drizzle-orm'
 import { TochkaClient } from '@/lib/banks/tochka'
 import { TBankClient } from '@/lib/banks/tbank'
 import { subDays } from 'date-fns'
@@ -14,20 +15,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  const accounts = await prisma.bankAccount.findMany({
-    where: { isActive: true },
-  })
+  const accounts = await db
+    .select()
+    .from(bankAccounts)
+    .where(eq(bankAccounts.isActive, true))
   
   const results = []
   
   for (const account of accounts) {
-    const log = await prisma.syncLog.create({
-      data: {
+    const [log] = await db
+      .insert(syncLogs)
+      .values({
         bankAccountId: account.id,
         status: 'RUNNING',
         startedAt: new Date(),
-      },
-    })
+      })
+      .returning()
     
     try {
       let client
@@ -40,7 +43,6 @@ export async function POST(request: NextRequest) {
           refreshToken: account.refreshToken || undefined,
         })
         
-        // Refresh token if needed
         if (account.refreshToken) {
           await client.refreshTokenIfNeeded()
         }
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
       const toDate = new Date()
       const fromDate = subDays(toDate, 7)
       
-      const transactions = await client.getTransactions(
+      const txs = await client.getTransactions(
         account.accountId,
         fromDate,
         toDate
@@ -64,47 +66,42 @@ export async function POST(request: NextRequest) {
       
       // Upsert transactions
       let added = 0
-      for (const tx of transactions) {
-        const result = await prisma.transaction.upsert({
-          where: {
-            bankAccountId_externalId: {
+      for (const tx of txs) {
+        try {
+          await db
+            .insert(transactions)
+            .values({
               bankAccountId: account.id,
               externalId: tx.id,
-            },
-          },
-          update: {},
-          create: {
-            bankAccountId: account.id,
-            externalId: tx.id,
-            amount: tx.amount,
-            currency: tx.currency,
-            type: tx.type === 'income' ? 'INCOME' : 'EXPENSE',
-            counterparty: tx.counterparty,
-            description: tx.description,
-            executedAt: tx.executedAt,
-          },
-        })
-        
-        // Count as added if it was created (not updated)
-        if (result.createdAt.getTime() === result.createdAt.getTime()) {
+              amount: tx.amount.toString(),
+              currency: tx.currency,
+              type: tx.type === 'income' ? 'INCOME' : 'EXPENSE',
+              counterparty: tx.counterparty,
+              description: tx.description,
+              executedAt: tx.executedAt,
+            })
+            .onConflictDoNothing()
+          
           added++
+        } catch {
+          // Ignore duplicates
         }
       }
       
       // Update sync status
-      await prisma.syncLog.update({
-        where: { id: log.id },
-        data: {
+      await db
+        .update(syncLogs)
+        .set({
           status: 'SUCCESS',
-          transactionsAdded: added,
+          transactionsAdded: added.toString(),
           completedAt: new Date(),
-        },
-      })
+        })
+        .where(eq(syncLogs.id, log.id))
       
-      await prisma.bankAccount.update({
-        where: { id: account.id },
-        data: { lastSyncAt: new Date() },
-      })
+      await db
+        .update(bankAccounts)
+        .set({ lastSyncAt: new Date(), updatedAt: new Date() })
+        .where(eq(bankAccounts.id, account.id))
       
       results.push({
         accountId: account.id,
@@ -113,14 +110,14 @@ export async function POST(request: NextRequest) {
         transactionsAdded: added,
       })
     } catch (error) {
-      await prisma.syncLog.update({
-        where: { id: log.id },
-        data: {
+      await db
+        .update(syncLogs)
+        .set({
           status: 'FAILED',
           message: error instanceof Error ? error.message : 'Unknown error',
           completedAt: new Date(),
-        },
-      })
+        })
+        .where(eq(syncLogs.id, log.id))
       
       results.push({
         accountId: account.id,

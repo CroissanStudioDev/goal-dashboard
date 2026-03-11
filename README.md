@@ -14,7 +14,7 @@ Real-time revenue tracking dashboard for teams. Set a goal, watch your progress 
 ## Tech Stack
 
 - **Framework:** Next.js 14 (App Router + API Routes)
-- **Database:** PostgreSQL + Prisma
+- **Database:** PostgreSQL + Drizzle ORM
 - **Styling:** Tailwind CSS
 - **Bank APIs:** Точка Open API, Т-Банк T-API
 
@@ -31,6 +31,8 @@ pnpm install
 # Setup database
 cp .env.example .env.local
 # Edit .env.local with your database URL
+
+# Push schema to database
 pnpm db:push
 
 # Run
@@ -38,6 +40,15 @@ pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
+
+## Database Commands
+
+```bash
+pnpm db:generate  # Generate migrations
+pnpm db:migrate   # Run migrations
+pnpm db:push      # Push schema directly (dev)
+pnpm db:studio    # Open Drizzle Studio
+```
 
 ## API Routes
 
