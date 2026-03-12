@@ -29,6 +29,38 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   }
 }
 
+// PATCH /api/goals/[id] - Update goal settings
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const userId = await requireUserId()
+    const { id } = await params
+    const body = await request.json()
+
+    const updates: Record<string, unknown> = { updatedAt: new Date() }
+
+    if (Array.isArray(body.excludeCounterparties)) {
+      updates.excludeCounterparties = body.excludeCounterparties
+    }
+
+    const result = await db
+      .update(goals)
+      .set(updates)
+      .where(and(eq(goals.id, id), eq(goals.userId, userId)))
+      .returning({ id: goals.id, excludeCounterparties: goals.excludeCounterparties })
+
+    if (result.length === 0) {
+      return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(result[0])
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AuthError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    throw error
+  }
+}
+
 // DELETE /api/goals/[id] - Deactivate goal
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {

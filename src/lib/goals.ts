@@ -96,12 +96,21 @@ export async function calculateGoalProgress(
     .select({
       amount: transactions.amount,
       type: transactions.type,
+      counterparty: transactions.counterparty,
     })
     .from(transactions)
     .where(and(...conditions))
 
   let current = 0
   for (const tx of txs) {
+    // Skip excluded counterparties (partial match, case-insensitive)
+    if (goal.excludeCounterparties.length > 0 && tx.counterparty) {
+      const cp = tx.counterparty.toLowerCase()
+      if (goal.excludeCounterparties.some(ex => cp.includes(ex.toLowerCase()))) {
+        continue
+      }
+    }
+
     const amount = parseFloat(tx.amount)
     if (tx.type === 'INCOME') {
       current += amount

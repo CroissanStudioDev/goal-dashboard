@@ -121,6 +121,9 @@ export const goals = pgTable(
     // JSON array of account IDs to track (empty = all user's accounts)
     accountIds: text('account_ids').array().default([]).notNull(),
 
+    // Counterparties to exclude from calculation (partial match)
+    excludeCounterparties: text('exclude_counterparties').array().default([]).notNull(),
+
     trackIncome: boolean('track_income').default(true).notNull(),
     trackExpense: boolean('track_expense').default(false).notNull(),
 

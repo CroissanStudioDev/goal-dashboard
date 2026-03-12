@@ -5,6 +5,7 @@ import { bankAccounts, db, goals } from '@/db'
 import { getAuthSession } from '@/lib/session'
 import { AccountsList } from './AccountsList'
 import { ConnectBankForm } from './ConnectBankForm'
+import { ExclusionsList } from './ExclusionsList'
 import { GoalsList } from './GoalsList'
 import { SyncSettings } from './SyncSettings'
 
@@ -88,6 +89,16 @@ export default async function SettingsPage() {
             Новая цель
           </a>
         </section>
+
+        {/* Exclusions */}
+        {goalsList.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+              Исключения
+            </h2>
+            <ExclusionsList goal={goalsList[0]} />
+          </section>
+        )}
 
         {/* Sync */}
         <section className="space-y-4">
