@@ -49,7 +49,7 @@ if (!DATABASE_URL) {
 async function main() {
   console.log('Fixing transaction types...\n')
 
-  const client = postgres(DATABASE_URL)
+  const client = postgres(DATABASE_URL!)
   const db = drizzle(client)
 
   try {
