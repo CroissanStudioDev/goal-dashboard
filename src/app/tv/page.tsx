@@ -1,20 +1,25 @@
 import { redirect } from 'next/navigation'
+import {
+  calculateGoalProgress,
+  calculatePace,
+  getActiveGoal,
+  getDayStats,
+} from '@/lib/goals'
 import { getAuthSession } from '@/lib/session'
-import { getActiveGoal, calculateGoalProgress, calculatePace, getDayStats } from '@/lib/goals'
 import { TVDashboard } from './TVDashboard'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TVPage() {
   const session = await getAuthSession()
-  
+
   if (!session) {
     redirect('/sign-in?callbackUrl=/tv')
   }
-  
+
   const userId = session.user.id
   const goal = await getActiveGoal(userId)
-  
+
   if (!goal) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
@@ -22,25 +27,27 @@ export default async function TVPage() {
       </main>
     )
   }
-  
+
   const [progress, dayStats] = await Promise.all([
     calculateGoalProgress(goal, userId),
     getDayStats(goal, userId),
   ])
-  
+
   const pace = calculatePace(goal, progress)
-  
+
   return (
     <TVDashboard
-      goal={{
-        name: goal.name,
-        currency: goal.currency,
-        startDate: goal.startDate.toISOString(),
-        endDate: goal.endDate.toISOString(),
+      data={{
+        goal: {
+          name: goal.name,
+          currency: goal.currency,
+          endDate: goal.endDate.toISOString(),
+        },
+        progress,
+        pace,
+        today: dayStats.today,
+        yesterday: dayStats.yesterday,
       }}
-      progress={progress}
-      pace={pace}
-      dayStats={dayStats}
     />
   )
 }

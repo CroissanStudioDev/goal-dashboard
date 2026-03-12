@@ -1,10 +1,10 @@
+import { and, desc, eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import { getAuthSession } from '@/lib/session'
-import { db, transactions, bankAccounts } from '@/db'
-import { eq, and, desc } from 'drizzle-orm'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui'
-import { AddTransactionForm } from './AddTransactionForm'
 import { UserMenu } from '@/components/UserMenu'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
+import { bankAccounts, db, transactions } from '@/db'
+import { getAuthSession } from '@/lib/session'
+import { AddTransactionForm } from './AddTransactionForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,10 +33,9 @@ async function getAccounts(userId: string) {
       bank: bankAccounts.bank,
     })
     .from(bankAccounts)
-    .where(and(
-      eq(bankAccounts.userId, userId),
-      eq(bankAccounts.isActive, true)
-    ))
+    .where(
+      and(eq(bankAccounts.userId, userId), eq(bankAccounts.isActive, true)),
+    )
 }
 
 function formatCurrency(amount: string | number, currency: string) {
@@ -51,18 +50,18 @@ function formatCurrency(amount: string | number, currency: string) {
 
 export default async function TransactionsPage() {
   const session = await getAuthSession()
-  
+
   if (!session) {
     redirect('/sign-in?callbackUrl=/transactions')
   }
-  
+
   const userId = session.user.id
-  
+
   const [txList, accountsList] = await Promise.all([
     getTransactions(userId),
     getAccounts(userId),
   ])
-  
+
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -75,7 +74,7 @@ export default async function TransactionsPage() {
             <UserMenu />
           </div>
         </header>
-        
+
         {/* Add Transaction */}
         {accountsList.length > 0 && (
           <Card>
@@ -87,7 +86,7 @@ export default async function TransactionsPage() {
             </CardContent>
           </Card>
         )}
-        
+
         {/* Transaction List */}
         <Card>
           <CardHeader>
@@ -116,9 +115,11 @@ export default async function TransactionsPage() {
                         })}
                       </div>
                     </div>
-                    <div className={`font-mono font-medium ${
-                      tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400'
-                    }`}>
+                    <div
+                      className={`font-mono font-medium ${
+                        tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400'
+                      }`}
+                    >
                       {tx.type === 'INCOME' ? '+' : '-'}
                       {formatCurrency(tx.amount, tx.currency)}
                     </div>

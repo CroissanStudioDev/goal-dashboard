@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Button } from '@/components/ui'
 
 export function SyncButton() {
@@ -11,19 +11,19 @@ export function SyncButton() {
     success: boolean
     message: string
   } | null>(null)
-  
+
   const handleSync = async () => {
     setLoading(true)
     setResult(null)
-    
+
     try {
       const res = await fetch('/api/sync', {
         method: 'POST',
         credentials: 'include',
       })
-      
+
       const data = await res.json()
-      
+
       if (!res.ok) {
         if (res.status === 429) {
           setResult({
@@ -38,15 +38,17 @@ export function SyncButton() {
         }
         return
       }
-      
+
       const added = data.totalAdded || 0
-      const synced = data.results?.filter((r: { status: string }) => r.status === 'success').length || 0
-      
+      const synced =
+        data.results?.filter((r: { status: string }) => r.status === 'success')
+          .length || 0
+
       setResult({
         success: true,
         message: `Синхронизировано ${synced} счёт(ов), добавлено ${added} транзакций`,
       })
-      
+
       router.refresh()
     } catch (error) {
       setResult({
@@ -57,19 +59,19 @@ export function SyncButton() {
       setLoading(false)
     }
   }
-  
+
   return (
     <div className="space-y-2">
-      <Button
-        onClick={handleSync}
-        disabled={loading}
-        variant="secondary"
-      >
+      <Button onClick={handleSync} disabled={loading} variant="secondary">
         {loading ? 'Синхронизация...' : 'Синхронизировать сейчас'}
       </Button>
-      
+
       {result && (
-        <p className={result.success ? 'text-green-400 text-sm' : 'text-red-400 text-sm'}>
+        <p
+          className={
+            result.success ? 'text-green-400 text-sm' : 'text-red-400 text-sm'
+          }
+        >
           {result.message}
         </p>
       )}

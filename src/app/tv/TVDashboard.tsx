@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useFullscreen } from '@/hooks/useFullscreen'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useBankSync } from '@/hooks/useBankSync'
+import { useFullscreen } from '@/hooks/useFullscreen'
 import { formatCurrency, formatPercent } from '@/lib/format'
 
 type PaceStatus = 'ahead' | 'ontrack' | 'behind' | 'atrisk'
@@ -62,27 +62,37 @@ const statusLabels: Record<PaceStatus, string> = {
 export function TVDashboard({ data }: TVDashboardProps) {
   const { isFullscreen, toggleFullscreen } = useFullscreen()
   const [time, setTime] = useState(new Date())
-  
+
   // Auto-refresh page every 30 seconds
   useAutoRefresh(30_000)
-  
+
   // Sync banks every 10 minutes while TV is open
-  const { isSyncing, lastSync } = useBankSync({
+  const { isSyncing, lastSync: _lastSync } = useBankSync({
     intervalMs: 10 * 60 * 1000,
     syncOnMount: true,
   })
-  
+
   // Update clock every second
   useEffect(() => {
     const interval = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(interval)
   }, [])
-  
+
+  // Global keyboard handler for fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'f' || e.key === 'F') toggleFullscreen()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [toggleFullscreen])
+
   const { goal, progress, pace, today, yesterday } = data
   const percent = Math.min(progress.percent, 100)
-  
+
   return (
-    <main 
+    // biome-ignore lint/a11y/useKeyWithClickEvents: TV dashboard uses global keyboard listener
+    <main
       className="min-h-screen bg-black p-8 flex flex-col cursor-pointer tv-mode"
       onClick={toggleFullscreen}
     >
@@ -91,21 +101,25 @@ export function TVDashboard({ data }: TVDashboardProps) {
         <div>
           <h1 className="text-3xl text-gray-400">{goal.name}</h1>
           <p className="text-gray-600 text-lg">
-            до {new Date(goal.endDate).toLocaleDateString('ru-RU', { 
-              day: 'numeric', 
-              month: 'long' 
+            до{' '}
+            {new Date(goal.endDate).toLocaleDateString('ru-RU', {
+              day: 'numeric',
+              month: 'long',
             })}
           </p>
         </div>
         <div className="text-right">
           <div className="text-4xl font-mono text-gray-300">
-            {time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+            {time.toLocaleTimeString('ru-RU', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
           </div>
           <div className="flex items-center gap-2 text-gray-500 justify-end">
-            <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
-            <span className="text-sm">
-              {isSyncing ? 'SYNC' : 'LIVE'}
-            </span>
+            <span
+              className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}
+            />
+            <span className="text-sm">{isSyncing ? 'SYNC' : 'LIVE'}</span>
             {!isFullscreen && (
               <span className="text-xs text-gray-600 ml-2">
                 (клик для fullscreen)
@@ -114,20 +128,22 @@ export function TVDashboard({ data }: TVDashboardProps) {
           </div>
         </div>
       </header>
-      
+
       {/* Main content */}
       <div className="flex-1 flex flex-col justify-center">
         {/* Big number */}
         <div className="text-center mb-8">
-          <div className={`text-[10rem] leading-none font-bold tabular-nums ${statusColors[pace.status]}`}
-               style={{ textShadow: '0 0 60px currentColor' }}>
+          <div
+            className={`text-[10rem] leading-none font-bold tabular-nums ${statusColors[pace.status]}`}
+            style={{ textShadow: '0 0 60px currentColor' }}
+          >
             {formatCurrency(progress.current, goal.currency)}
           </div>
           <div className="text-4xl text-gray-500 mt-4">
             из {formatCurrency(progress.target, goal.currency)}
           </div>
         </div>
-        
+
         {/* Progress bar */}
         <div className="relative mx-auto w-full max-w-4xl">
           <div className="h-12 bg-gray-900 rounded-full overflow-hidden">
@@ -142,14 +158,15 @@ export function TVDashboard({ data }: TVDashboardProps) {
             </span>
           </div>
         </div>
-        
+
         {/* Pace */}
         <div className="text-center mt-8 text-3xl">
           <span className={statusColors[pace.status]}>
             {statusLabels[pace.status]}
             {pace.percentDiff !== 0 && (
               <span className="ml-2">
-                {pace.percentDiff > 0 ? '+' : ''}{pace.percentDiff}%
+                {pace.percentDiff > 0 ? '+' : ''}
+                {pace.percentDiff}%
               </span>
             )}
           </span>
@@ -159,7 +176,7 @@ export function TVDashboard({ data }: TVDashboardProps) {
           </span>
         </div>
       </div>
-      
+
       {/* Footer stats */}
       <footer className="flex justify-center gap-24 text-2xl pt-8 border-t border-gray-900">
         <div className="text-center">
@@ -168,17 +185,19 @@ export function TVDashboard({ data }: TVDashboardProps) {
             +{formatCurrency(today.amount, goal.currency)}
           </div>
           <div className="text-gray-600 mt-1">
-            {today.transactions} {pluralize(today.transactions, 'платёж', 'платежа', 'платежей')}
+            {today.transactions}{' '}
+            {pluralize(today.transactions, 'платёж', 'платежа', 'платежей')}
           </div>
         </div>
-        
+
         <div className="text-center">
           <div className="text-gray-500 mb-2">Вчера</div>
           <div className="text-5xl font-bold text-gray-400">
             +{formatCurrency(yesterday.amount, goal.currency)}
           </div>
           <div className="text-gray-600 mt-1">
-            {yesterday.transactions} {pluralize(yesterday.transactions, 'платёж', 'платежа', 'платежей')}
+            {yesterday.transactions}{' '}
+            {pluralize(yesterday.transactions, 'платёж', 'платежа', 'платежей')}
           </div>
         </div>
       </footer>
@@ -189,7 +208,7 @@ export function TVDashboard({ data }: TVDashboardProps) {
 function pluralize(n: number, one: string, few: string, many: string): string {
   const mod10 = n % 10
   const mod100 = n % 100
-  
+
   if (mod100 >= 11 && mod100 <= 19) return many
   if (mod10 === 1) return one
   if (mod10 >= 2 && mod10 <= 4) return few

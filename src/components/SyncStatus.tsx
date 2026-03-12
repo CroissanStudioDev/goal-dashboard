@@ -12,13 +12,16 @@ interface SyncStatusProps {
 /**
  * Component that handles bank sync polling and shows status
  */
-export function SyncStatus({ intervalMinutes = 10, verbose = false }: SyncStatusProps) {
+export function SyncStatus({
+  intervalMinutes = 10,
+  verbose = false,
+}: SyncStatusProps) {
   const { isSyncing, lastSync, error, sync } = useBankSync({
     intervalMs: intervalMinutes * 60 * 1000,
     syncOnMount: true,
     enabled: true,
   })
-  
+
   if (!verbose) {
     // Minimal indicator
     return (
@@ -32,10 +35,9 @@ export function SyncStatus({ intervalMinutes = 10, verbose = false }: SyncStatus
           <>
             <span className="w-2 h-2 bg-green-500 rounded-full" />
             <span>
-              {lastSync.totalAdded > 0 
+              {lastSync.totalAdded > 0
                 ? `+${lastSync.totalAdded} новых`
-                : 'Актуально'
-              }
+                : 'Актуально'}
             </span>
           </>
         ) : error ? (
@@ -47,13 +49,14 @@ export function SyncStatus({ intervalMinutes = 10, verbose = false }: SyncStatus
       </div>
     )
   }
-  
+
   // Verbose status
   return (
     <div className="space-y-2 text-sm">
       <div className="flex items-center justify-between">
         <span className="text-gray-400">Синхронизация банков</span>
         <button
+          type="button"
           onClick={() => sync()}
           disabled={isSyncing}
           className="text-blue-400 hover:text-blue-300 disabled:opacity-50"
@@ -61,7 +64,7 @@ export function SyncStatus({ intervalMinutes = 10, verbose = false }: SyncStatus
           {isSyncing ? 'Загрузка...' : 'Обновить'}
         </button>
       </div>
-      
+
       {lastSync && (
         <div className="text-gray-500">
           Последняя: {new Date(lastSync.syncedAt).toLocaleTimeString('ru-RU')}
@@ -72,15 +75,16 @@ export function SyncStatus({ intervalMinutes = 10, verbose = false }: SyncStatus
           )}
         </div>
       )}
-      
-      {error && (
-        <div className="text-red-400">{error}</div>
-      )}
-      
+
+      {error && <div className="text-red-400">{error}</div>}
+
       {lastSync?.results && (
         <div className="space-y-1">
-          {lastSync.results.map((r, i) => (
-            <div key={i} className="text-xs text-gray-600">
+          {lastSync.results.map((r) => (
+            <div
+              key={`${r.bank}-${r.accountId}`}
+              className="text-xs text-gray-600"
+            >
               {r.bank}: {r.status}
               {r.added !== undefined && r.added > 0 && ` (+${r.added})`}
               {r.error && ` - ${r.error}`}

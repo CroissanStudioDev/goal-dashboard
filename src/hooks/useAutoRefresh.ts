@@ -8,12 +8,12 @@ import { useEffect } from 'react'
  */
 export function useAutoRefresh(intervalMs: number = 60_000) {
   const router = useRouter()
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       router.refresh()
     }, intervalMs)
-    
+
     return () => clearInterval(interval)
   }, [router, intervalMs])
 }

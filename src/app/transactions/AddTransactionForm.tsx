@@ -1,19 +1,24 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Button, Input } from '@/components/ui'
-import { BankAccount } from '@/db'
+
+interface AccountOption {
+  id: string
+  accountName: string
+  bank: 'TOCHKA' | 'TBANK'
+}
 
 interface AddTransactionFormProps {
-  accounts: BankAccount[]
+  accounts: AccountOption[]
 }
 
 export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const [form, setForm] = useState({
     accountId: accounts[0]?.id || '',
     type: 'INCOME' as 'INCOME' | 'EXPENSE',
@@ -22,12 +27,12 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
     description: '',
     executedAt: new Date().toISOString().slice(0, 16),
   })
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    
+
     try {
       const res = await fetch('/api/transactions', {
         method: 'POST',
@@ -41,12 +46,12 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
           executedAt: new Date(form.executedAt).toISOString(),
         }),
       })
-      
+
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Failed to add transaction')
       }
-      
+
       // Reset form
       setForm({
         ...form,
@@ -54,7 +59,7 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
         counterparty: '',
         description: '',
       })
-      
+
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
@@ -62,21 +67,30 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
       setLoading(false)
     }
   }
-  
+
   if (accounts.length === 0) {
     return (
       <p className="text-gray-500">
-        Сначала подключите банковский счёт в <a href="/settings" className="text-blue-400 hover:underline">настройках</a>
+        Сначала подключите банковский счёт в{' '}
+        <a href="/settings" className="text-blue-400 hover:underline">
+          настройках
+        </a>
       </p>
     )
   }
-  
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-300">Счёт</label>
+          <label
+            htmlFor="account-select"
+            className="block text-sm font-medium text-gray-300"
+          >
+            Счёт
+          </label>
           <select
+            id="account-select"
             value={form.accountId}
             onChange={(e) => setForm({ ...form, accountId: e.target.value })}
             className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
@@ -89,19 +103,27 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
             ))}
           </select>
         </div>
-        
+
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-300">Тип</label>
+          <label
+            htmlFor="type-select"
+            className="block text-sm font-medium text-gray-300"
+          >
+            Тип
+          </label>
           <select
+            id="type-select"
             value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value as 'INCOME' | 'EXPENSE' })}
+            onChange={(e) =>
+              setForm({ ...form, type: e.target.value as 'INCOME' | 'EXPENSE' })
+            }
             className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
           >
             <option value="INCOME">Приход</option>
             <option value="EXPENSE">Расход</option>
           </select>
         </div>
-        
+
         <Input
           label="Сумма"
           type="number"
@@ -112,7 +134,7 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
           min="0.01"
           step="0.01"
         />
-        
+
         <Input
           label="Дата/время"
           type="datetime-local"
@@ -121,7 +143,7 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
           required
         />
       </div>
-      
+
       <div className="grid grid-cols-2 gap-4">
         <Input
           label="Контрагент"
@@ -129,7 +151,7 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
           value={form.counterparty}
           onChange={(e) => setForm({ ...form, counterparty: e.target.value })}
         />
-        
+
         <Input
           label="Описание"
           placeholder="Оплата по договору"
@@ -137,9 +159,9 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
           onChange={(e) => setForm({ ...form, description: e.target.value })}
         />
       </div>
-      
+
       {error && <p className="text-red-400 text-sm">{error}</p>}
-      
+
       <Button type="submit" disabled={loading}>
         {loading ? 'Добавление...' : 'Добавить'}
       </Button>

@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
   --color-ahead: #22c55e;
@@ -40,7 +38,8 @@ body {
 
 /* Pulse animation for live indicator */
 @keyframes live-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

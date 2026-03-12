@@ -1,13 +1,13 @@
 /**
  * Т-Банк (T-Bank) API Client
- * 
+ *
  * Documentation: https://developer.tbank.ru/docs/api/
  */
 
-import axios, { AxiosInstance } from 'axios'
-import https from 'https'
-import fs from 'fs'
-import { BankClient, BankAccount, BankTransaction } from './types'
+import fs from 'node:fs'
+import https from 'node:https'
+import axios, { type AxiosInstance } from 'axios'
+import type { BankAccount, BankClient, BankTransaction } from './types'
 
 const API_URL = 'https://api.tbank.ru/v1'
 
@@ -20,15 +20,12 @@ interface TBankConfig {
 }
 
 export class TBankClient implements BankClient {
-  private config: TBankConfig
   private api: AxiosInstance
-  
+
   constructor(config: TBankConfig) {
-    this.config = config
-    
     // Create HTTPS agent with mTLS if certificate provided
     let httpsAgent: https.Agent | undefined
-    
+
     if (config.certificatePath && config.certificateKeyPath) {
       try {
         httpsAgent = new https.Agent({
@@ -41,25 +38,25 @@ export class TBankClient implements BankClient {
         console.warn('Failed to load T-Bank certificate, mTLS disabled:', error)
       }
     }
-    
+
     this.api = axios.create({
       baseURL: API_URL,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.token}`,
+        Authorization: `Bearer ${config.token}`,
       },
       timeout: 30_000,
       ...(httpsAgent && { httpsAgent }),
     })
   }
-  
+
   async getAccounts(): Promise<BankAccount[]> {
     const response = await this.api.get('/bank-accounts')
-    
-    const accounts = Array.isArray(response.data) 
-      ? response.data 
+
+    const accounts = Array.isArray(response.data)
+      ? response.data
       : response.data.accounts || []
-    
+
     return accounts.map((acc: any) => ({
       id: acc.accountNumber || acc.id,
       name: acc.name || acc.accountNumber || acc.id,
@@ -67,11 +64,11 @@ export class TBankClient implements BankClient {
       balance: acc.balance?.otb ?? acc.balance,
     }))
   }
-  
+
   async getTransactions(
     accountId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
   ): Promise<BankTransaction[]> {
     const response = await this.api.get('/bank-statement', {
       params: {
@@ -80,14 +77,14 @@ export class TBankClient implements BankClient {
         to: formatDate(toDate),
       },
     })
-    
+
     const operations = response.data.operation || response.data.operations || []
-    
+
     return operations.map((op: any) => ({
       id: op.id || op.operationId || `${op.date}-${op.amount}`,
       amount: Math.abs(Number(op.amount) || 0),
       currency: op.currency?.name || op.currency || 'RUB',
-      type: Number(op.amount) > 0 ? 'income' as const : 'expense' as const,
+      type: Number(op.amount) > 0 ? ('income' as const) : ('expense' as const),
       counterparty: op.counterparty?.name || op.counterpartyName,
       description: op.description || op.purpose,
       executedAt: new Date(op.date || op.operationDate),

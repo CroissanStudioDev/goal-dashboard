@@ -1,6 +1,6 @@
 'use client'
 
-import { InputHTMLAttributes, forwardRef } from 'react'
+import { forwardRef, type InputHTMLAttributes } from 'react'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -10,11 +10,11 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, className = '', ...props }, ref) => {
     return (
-      <div className="space-y-1">
+      <label className="block space-y-1">
         {label && (
-          <label className="block text-sm font-medium text-gray-300">
+          <span className="block text-sm font-medium text-gray-300">
             {label}
-          </label>
+          </span>
         )}
         <input
           ref={ref}
@@ -29,12 +29,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           `}
           {...props}
         />
-        {error && (
-          <p className="text-sm text-red-400">{error}</p>
-        )}
-      </div>
+        {error && <p className="text-sm text-red-400">{error}</p>}
+      </label>
     )
-  }
+  },
 )
 
 Input.displayName = 'Input'

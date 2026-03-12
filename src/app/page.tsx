@@ -1,40 +1,45 @@
-import { redirect } from 'next/navigation'
-import { getAuthSession } from '@/lib/session'
-import { getActiveGoal, calculateGoalProgress, calculatePace, getDayStats } from '@/lib/goals'
-import { GoalProgress } from '@/components/GoalProgress'
-import { TodayStats } from '@/components/TodayStats'
-import { LiveIndicator } from '@/components/LiveIndicator'
-import { AutoRefresh } from '@/components/AutoRefresh'
-import { SyncStatus } from '@/components/SyncStatus'
-import { UserMenu } from '@/components/UserMenu'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { AutoRefresh } from '@/components/AutoRefresh'
+import { GoalProgress } from '@/components/GoalProgress'
+import { LiveIndicator } from '@/components/LiveIndicator'
+import { SyncStatus } from '@/components/SyncStatus'
+import { TodayStats } from '@/components/TodayStats'
+import { UserMenu } from '@/components/UserMenu'
+import {
+  calculateGoalProgress,
+  calculatePace,
+  getActiveGoal,
+  getDayStats,
+} from '@/lib/goals'
+import { getAuthSession } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const session = await getAuthSession()
-  
+
   if (!session) {
     redirect('/sign-in')
   }
-  
+
   const userId = session.user.id
   const goal = await getActiveGoal(userId)
-  
+
   if (!goal) {
     return (
       <main className="min-h-screen p-8 flex flex-col items-center justify-center">
         <h1 className="text-4xl font-bold mb-4">🎯 Goal Dashboard</h1>
         <p className="text-gray-400 text-xl mb-8">Нет активных целей</p>
         <div className="flex gap-4">
-          <Link 
-            href="/setup" 
+          <Link
+            href="/setup"
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-lg"
           >
             Создать цель
           </Link>
-          <Link 
-            href="/settings" 
+          <Link
+            href="/settings"
             className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-lg"
           >
             Настройки
@@ -43,12 +48,12 @@ export default async function DashboardPage() {
       </main>
     )
   }
-  
+
   const [progress, dayStats] = await Promise.all([
     calculateGoalProgress(goal, userId),
     getDayStats(goal, userId),
   ])
-  
+
   const pace = calculatePace(goal, progress)
 
   return (
@@ -56,13 +61,14 @@ export default async function DashboardPage() {
       {/* Auto-refresh UI every minute, sync banks every 10 min */}
       <AutoRefresh intervalMs={60_000} />
       <SyncStatus intervalMinutes={10} />
-      
+
       {/* Header */}
       <header className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-2xl text-gray-400">{goal.name}</h1>
           <p className="text-sm text-gray-600">
-            {new Date(goal.startDate).toLocaleDateString('ru-RU')} — {new Date(goal.endDate).toLocaleDateString('ru-RU')}
+            {new Date(goal.startDate).toLocaleDateString('ru-RU')} —{' '}
+            {new Date(goal.endDate).toLocaleDateString('ru-RU')}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -70,10 +76,16 @@ export default async function DashboardPage() {
           <Link href="/tv" className="text-gray-500 hover:text-white text-sm">
             📺 TV
           </Link>
-          <Link href="/transactions" className="text-gray-500 hover:text-white text-sm">
+          <Link
+            href="/transactions"
+            className="text-gray-500 hover:text-white text-sm"
+          >
             💰
           </Link>
-          <Link href="/settings" className="text-gray-500 hover:text-white text-sm">
+          <Link
+            href="/settings"
+            className="text-gray-500 hover:text-white text-sm"
+          >
             ⚙️
           </Link>
           <UserMenu />

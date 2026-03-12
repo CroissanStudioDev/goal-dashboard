@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Goal } from '@/db'
+import type { Goal } from '@/db'
 import { formatCurrency } from '@/lib/format'
 
 interface GoalsListProps {
@@ -10,20 +10,18 @@ interface GoalsListProps {
 
 export function GoalsList({ goals }: GoalsListProps) {
   const router = useRouter()
-  
+
   const handleDelete = async (id: string) => {
     if (!confirm('Удалить эту цель?')) return
-    
+
     await fetch(`/api/goals/${id}`, { method: 'DELETE' })
     router.refresh()
   }
-  
+
   if (goals.length === 0) {
-    return (
-      <p className="text-gray-500">Нет активных целей</p>
-    )
+    return <p className="text-gray-500">Нет активных целей</p>
   }
-  
+
   return (
     <div className="space-y-2">
       {goals.map((goal) => (
@@ -37,10 +35,12 @@ export function GoalsList({ goals }: GoalsListProps) {
               {formatCurrency(Number(goal.targetAmount), goal.currency)}
             </div>
             <div className="text-xs text-gray-500">
-              {new Date(goal.startDate).toLocaleDateString('ru-RU')} — {new Date(goal.endDate).toLocaleDateString('ru-RU')}
+              {new Date(goal.startDate).toLocaleDateString('ru-RU')} —{' '}
+              {new Date(goal.endDate).toLocaleDateString('ru-RU')}
             </div>
           </div>
           <button
+            type="button"
             onClick={() => handleDelete(goal.id)}
             className="text-red-400 hover:text-red-300 text-sm"
           >

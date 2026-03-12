@@ -1,19 +1,22 @@
 /**
  * Format number as currency
  */
-export function formatCurrency(amount: number, currency: string = 'RUB'): string {
+export function formatCurrency(
+  amount: number,
+  currency: string = 'RUB',
+): string {
   const formatted = new Intl.NumberFormat('ru-RU', {
     style: 'decimal',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount)
-  
+
   const symbols: Record<string, string> = {
     RUB: '₽',
     USD: '$',
     EUR: '€',
   }
-  
+
   return `${formatted} ${symbols[currency] || currency}`
 }
 

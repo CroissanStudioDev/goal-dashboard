@@ -1,10 +1,18 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { BankAccount } from '@/db'
+
+interface AccountDisplay {
+  id: string
+  bank: 'TOCHKA' | 'TBANK'
+  accountId: string
+  accountName: string
+  currency: string
+  lastSyncAt: Date | null
+}
 
 interface AccountsListProps {
-  accounts: BankAccount[]
+  accounts: AccountDisplay[]
 }
 
 const bankLabels = {
@@ -14,20 +22,18 @@ const bankLabels = {
 
 export function AccountsList({ accounts }: AccountsListProps) {
   const router = useRouter()
-  
+
   const handleDisconnect = async (id: string) => {
     if (!confirm('Отключить этот счёт?')) return
-    
+
     await fetch(`/api/accounts/${id}`, { method: 'DELETE' })
     router.refresh()
   }
-  
+
   if (accounts.length === 0) {
-    return (
-      <p className="text-gray-500">Нет подключённых счетов</p>
-    )
+    return <p className="text-gray-500">Нет подключённых счетов</p>
   }
-  
+
   return (
     <div className="space-y-2">
       {accounts.map((account) => (
@@ -52,6 +58,7 @@ export function AccountsList({ accounts }: AccountsListProps) {
             )}
           </div>
           <button
+            type="button"
             onClick={() => handleDisconnect(account.id)}
             className="text-red-400 hover:text-red-300 text-sm"
           >

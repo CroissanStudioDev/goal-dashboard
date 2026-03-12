@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db, bankAccounts } from '@/db'
-import { eq, and } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
+import { bankAccounts, db } from '@/db'
 import { requireUserId } from '@/lib/session'
 
 interface RouteParams {
@@ -8,11 +8,11 @@ interface RouteParams {
 }
 
 // GET /api/accounts/[id] - Get account details
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await requireUserId()
     const { id } = await params
-    
+
     const [account] = await db
       .select({
         id: bankAccounts.id,
@@ -25,16 +25,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         createdAt: bankAccounts.createdAt,
       })
       .from(bankAccounts)
-      .where(and(
-        eq(bankAccounts.id, id),
-        eq(bankAccounts.userId, userId)
-      ))
+      .where(and(eq(bankAccounts.id, id), eq(bankAccounts.userId, userId)))
       .limit(1)
-    
+
     if (!account) {
       return NextResponse.json({ error: 'Account not found' }, { status: 404 })
     }
-    
+
     return NextResponse.json(account)
   } catch (error) {
     if (error instanceof Error && error.name === 'AuthError') {
@@ -45,24 +42,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/accounts/[id] - Deactivate account
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await requireUserId()
     const { id } = await params
-    
+
     const result = await db
       .update(bankAccounts)
       .set({ isActive: false, updatedAt: new Date() })
-      .where(and(
-        eq(bankAccounts.id, id),
-        eq(bankAccounts.userId, userId)
-      ))
+      .where(and(eq(bankAccounts.id, id), eq(bankAccounts.userId, userId)))
       .returning({ id: bankAccounts.id })
-    
+
     if (result.length === 0) {
       return NextResponse.json({ error: 'Account not found' }, { status: 404 })
     }
-    
+
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof Error && error.name === 'AuthError') {

@@ -8,7 +8,7 @@ export default function GlobalError({
   reset: () => void
 }) {
   return (
-    <html>
+    <html lang="ru">
       <body className="bg-black text-white">
         <main className="min-h-screen p-8 flex flex-col items-center justify-center">
           <div className="text-6xl mb-4">💀</div>
@@ -17,6 +17,7 @@ export default function GlobalError({
             {error.message || 'Приложение не может загрузиться'}
           </p>
           <button
+            type="button"
             onClick={reset}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg"
           >

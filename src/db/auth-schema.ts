@@ -1,10 +1,10 @@
 /**
  * Better Auth schema for Drizzle
- * 
+ *
  * Run `npx auth generate` to update this file when auth config changes
  */
 
-import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),

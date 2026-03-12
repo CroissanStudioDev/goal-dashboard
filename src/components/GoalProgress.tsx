@@ -36,14 +36,19 @@ const statusLabels: Record<PaceStatus, string> = {
   atrisk: '🔥 Под угрозой',
 }
 
-export function GoalProgress({ current, target, currency, pace }: GoalProgressProps) {
+export function GoalProgress({
+  current,
+  target,
+  currency,
+  pace,
+}: GoalProgressProps) {
   const percent = Math.min((current / target) * 100, 100)
-  
+
   return (
     <div className="space-y-8">
       {/* Big number */}
       <div className="text-center">
-        <div 
+        <div
           className={`text-7xl md:text-8xl lg:text-display-lg font-bold tabular-nums ${statusColors[pace.status]}`}
           style={{ textShadow: '0 0 40px currentColor' }}
         >
@@ -75,12 +80,14 @@ export function GoalProgress({ current, target, currency, pace }: GoalProgressPr
           {statusLabels[pace.status]}
           {pace.percentDiff !== 0 && (
             <span className="ml-2">
-              {pace.percentDiff > 0 ? '+' : ''}{pace.percentDiff}%
+              {pace.percentDiff > 0 ? '+' : ''}
+              {pace.percentDiff}%
             </span>
           )}
         </div>
         <div className="text-gray-400">
-          Прогноз: достигнем <span className="text-white">{pace.forecastDate}</span>
+          Прогноз: достигнем{' '}
+          <span className="text-white">{pace.forecastDate}</span>
         </div>
       </div>
     </div>

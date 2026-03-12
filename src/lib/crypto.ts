@@ -2,11 +2,16 @@
  * Token encryption/decryption using AES-256-GCM
  */
 
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto'
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  scryptSync,
+} from 'node:crypto'
 
 const ALGORITHM = 'aes-256-gcm'
 const KEY_LENGTH = 32
-const IV_LENGTH = 16
+const IV_LENGTH = 12 // NIST recommended for GCM (96 bits)
 const TAG_LENGTH = 16
 const SALT_LENGTH = 32
 
@@ -31,14 +36,14 @@ export function encryptToken(plaintext: string): string {
   const salt = randomBytes(SALT_LENGTH)
   const key = getKey(secret, salt)
   const iv = randomBytes(IV_LENGTH)
-  
+
   const cipher = createCipheriv(ALGORITHM, key, iv)
   const encrypted = Buffer.concat([
     cipher.update(plaintext, 'utf8'),
     cipher.final(),
   ])
   const tag = cipher.getAuthTag()
-  
+
   return [
     salt.toString('base64'),
     iv.toString('base64'),
@@ -53,24 +58,28 @@ export function encryptToken(plaintext: string): string {
 export function decryptToken(ciphertext: string): string {
   const secret = getEncryptionSecret()
   const [saltB64, ivB64, tagB64, encryptedB64] = ciphertext.split(':')
-  
+
   if (!saltB64 || !ivB64 || !tagB64 || !encryptedB64) {
     throw new Error('Invalid encrypted token format')
   }
-  
+
   const salt = Buffer.from(saltB64, 'base64')
   const iv = Buffer.from(ivB64, 'base64')
   const tag = Buffer.from(tagB64, 'base64')
   const encrypted = Buffer.from(encryptedB64, 'base64')
-  
+
+  // Validate auth tag length (must be 128 bits / 16 bytes)
+  if (tag.length !== TAG_LENGTH) {
+    throw new Error('Invalid authentication tag length')
+  }
+
   const key = getKey(secret, salt)
   const decipher = createDecipheriv(ALGORITHM, key, iv)
   decipher.setAuthTag(tag)
-  
-  return Buffer.concat([
-    decipher.update(encrypted),
-    decipher.final(),
-  ]).toString('utf8')
+
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString(
+    'utf8',
+  )
 }
 
 /**
@@ -78,7 +87,7 @@ export function decryptToken(ciphertext: string): string {
  */
 export function isEncrypted(value: string): boolean {
   const parts = value.split(':')
-  return parts.length === 4 && parts.every(p => p.length > 0)
+  return parts.length === 4 && parts.every((p) => p.length > 0)
 }
 
 /**
@@ -86,7 +95,7 @@ export function isEncrypted(value: string): boolean {
  */
 export function safeDecryptToken(ciphertext: string | null): string | null {
   if (!ciphertext) return null
-  
+
   try {
     // If not encrypted format, return as-is (migration support)
     if (!isEncrypted(ciphertext)) {

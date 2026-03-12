@@ -35,7 +35,7 @@ export async function getAuthSession(): Promise<AuthSession | null> {
   const session = await auth.api.getSession({
     headers: await headers(),
   })
-  
+
   return session
 }
 
@@ -45,11 +45,11 @@ export async function getAuthSession(): Promise<AuthSession | null> {
  */
 export async function requireAuth(): Promise<AuthSession> {
   const session = await getAuthSession()
-  
+
   if (!session) {
     throw new AuthError('Unauthorized', 401)
   }
-  
+
   return session
 }
 
@@ -67,7 +67,7 @@ export async function requireUserId(): Promise<string> {
 export class AuthError extends Error {
   constructor(
     message: string,
-    public statusCode: number = 401
+    public statusCode: number = 401,
   ) {
     super(message)
     this.name = 'AuthError'

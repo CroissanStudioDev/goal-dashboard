@@ -1,6 +1,6 @@
 'use client'
 
-import { ButtonHTMLAttributes, forwardRef } from 'react'
+import { type ButtonHTMLAttributes, forwardRef } from 'react'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
@@ -21,7 +21,10 @@ const sizes = {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', size = 'md', className = '', children, ...props }, ref) => {
+  (
+    { variant = 'primary', size = 'md', className = '', children, ...props },
+    ref,
+  ) => {
     return (
       <button
         ref={ref}
@@ -37,7 +40,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     )
-  }
+  },
 )
 
 Button.displayName = 'Button'

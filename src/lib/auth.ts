@@ -13,14 +13,14 @@ export const auth = betterAuth({
     provider: 'pg',
     schema: authSchema,
   }),
-  
+
   // Email/password authentication
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
     minPasswordLength: 8,
   },
-  
+
   // Session configuration
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
@@ -30,15 +30,13 @@ export const auth = betterAuth({
       maxAge: 60 * 5, // 5 minutes
     },
   },
-  
+
   // Plugins
-  plugins: [
-    nextCookies(),
-  ],
-  
+  plugins: [nextCookies()],
+
   // Trusted origins
-  trustedOrigins: process.env.NEXT_PUBLIC_APP_URL 
-    ? [process.env.NEXT_PUBLIC_APP_URL] 
+  trustedOrigins: process.env.NEXT_PUBLIC_APP_URL
+    ? [process.env.NEXT_PUBLIC_APP_URL]
     : [],
 })
 

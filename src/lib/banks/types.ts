@@ -24,18 +24,18 @@ export interface BankClient {
    * Get list of accounts
    */
   getAccounts(): Promise<BankAccount[]>
-  
+
   /**
    * Get transactions for date range
    */
   getTransactions(
     accountId: string,
     fromDate: Date,
-    toDate: Date
+    toDate: Date,
   ): Promise<BankTransaction[]>
-  
+
   /**
    * Refresh access token if needed
    */
-  refreshTokenIfNeeded?(): Promise<void>
+  refreshTokenIfNeeded?(): Promise<unknown>
 }

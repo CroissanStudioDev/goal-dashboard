@@ -1,13 +1,13 @@
+import { and, desc, eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import { db, bankAccounts } from '@/db'
-import { eq, and, desc } from 'drizzle-orm'
+import { bankAccounts, db } from '@/db'
 import { requireUserId } from '@/lib/session'
 
 // GET /api/accounts - List user's bank accounts
 export async function GET() {
   try {
     const userId = await requireUserId()
-    
+
     const accounts = await db
       .select({
         id: bankAccounts.id,
@@ -20,12 +20,11 @@ export async function GET() {
         createdAt: bankAccounts.createdAt,
       })
       .from(bankAccounts)
-      .where(and(
-        eq(bankAccounts.userId, userId),
-        eq(bankAccounts.isActive, true)
-      ))
+      .where(
+        and(eq(bankAccounts.userId, userId), eq(bankAccounts.isActive, true)),
+      )
       .orderBy(desc(bankAccounts.createdAt))
-    
+
     return NextResponse.json(accounts)
   } catch (error) {
     if (error instanceof Error && error.name === 'AuthError') {

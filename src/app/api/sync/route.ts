@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db, bankAccounts, transactions } from '@/db'
-import { eq, and } from 'drizzle-orm'
-import { TochkaClient } from '@/lib/banks/tochka'
+import { subDays, subMinutes } from 'date-fns'
+import { and, eq } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
+import { bankAccounts, db, transactions } from '@/db'
 import { TBankClient } from '@/lib/banks/tbank'
-import { safeDecryptToken, encryptToken } from '@/lib/crypto'
+import { TochkaClient } from '@/lib/banks/tochka'
+import { encryptToken, safeDecryptToken } from '@/lib/crypto'
 import { checkRateLimit, getClientId } from '@/lib/rate-limit'
 import { requireUserId } from '@/lib/session'
-import { subDays, subMinutes } from 'date-fns'
 
 const MAX_RETRIES = 3
 const RETRY_DELAY_MS = 1000
@@ -17,27 +17,32 @@ const RATE_LIMIT = { limit: 10, windowMs: 60_000 }
 
 async function withRetry<T>(
   fn: () => Promise<T>,
-  retries = MAX_RETRIES
+  retries = MAX_RETRIES,
 ): Promise<T> {
   let lastError: Error | null = null
-  
+
   for (let i = 0; i < retries; i++) {
     try {
       return await fn()
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
-      
+
       // Don't retry on auth errors
-      if (lastError.message.includes('401') || lastError.message.includes('403')) {
+      if (
+        lastError.message.includes('401') ||
+        lastError.message.includes('403')
+      ) {
         throw lastError
       }
-      
+
       if (i < retries - 1) {
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (i + 1)))
+        await new Promise((resolve) =>
+          setTimeout(resolve, RETRY_DELAY_MS * (i + 1)),
+        )
       }
     }
   }
-  
+
   throw lastError
 }
 
@@ -45,46 +50,50 @@ async function withRetry<T>(
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId()
-    
+
     // Rate limiting
     const clientId = getClientId(request)
     const rateLimit = checkRateLimit(`sync:${userId}:${clientId}`, RATE_LIMIT)
-    
+
     if (!rateLimit.success) {
       return NextResponse.json(
-        { error: 'Too many requests', retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000) },
-        { 
+        {
+          error: 'Too many requests',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        {
           status: 429,
           headers: {
-            'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+            'Retry-After': String(
+              Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+            ),
           },
-        }
+        },
       )
     }
-    
+
     // Get user's active accounts
     const accounts = await db
       .select()
       .from(bankAccounts)
-      .where(and(
-        eq(bankAccounts.userId, userId),
-        eq(bankAccounts.isActive, true)
-      ))
-    
+      .where(
+        and(eq(bankAccounts.userId, userId), eq(bankAccounts.isActive, true)),
+      )
+
     if (accounts.length === 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'No accounts to sync',
         syncedAt: new Date().toISOString(),
         totalAdded: 0,
         results: [],
       })
     }
-    
+
     const results = []
     let totalAdded = 0
     const now = new Date()
     const cooldownTime = subMinutes(now, SYNC_COOLDOWN_MINUTES)
-    
+
     for (const account of accounts) {
       // Skip if synced recently
       if (account.lastSyncAt && account.lastSyncAt > cooldownTime) {
@@ -96,12 +105,12 @@ export async function POST(request: NextRequest) {
         })
         continue
       }
-      
+
       try {
         // Decrypt tokens
         const accessToken = safeDecryptToken(account.accessToken)
         const refreshToken = safeDecryptToken(account.refreshToken)
-        
+
         if (!accessToken) {
           results.push({
             accountId: account.id,
@@ -111,9 +120,9 @@ export async function POST(request: NextRequest) {
           })
           continue
         }
-        
+
         // Create bank client
-        let client
+        let client: TochkaClient | TBankClient
         if (account.bank === 'TOCHKA') {
           client = new TochkaClient({
             clientId: process.env.TOCHKA_CLIENT_ID!,
@@ -126,27 +135,27 @@ export async function POST(request: NextRequest) {
             token: accessToken,
           })
         }
-        
+
         // Fetch transactions (last 90 days)
         const fromDate = subDays(now, 90)
-        const bankTransactions = await withRetry(() => 
-          client.getTransactions(account.accountId, fromDate, now)
+        const bankTransactions = await withRetry(() =>
+          client.getTransactions(account.accountId, fromDate, now),
         )
-        
+
         // Batch insert with conflict handling
         if (bankTransactions.length > 0) {
-          const toInsert = bankTransactions.map(t => ({
+          const toInsert = bankTransactions.map((t) => ({
             userId,
             bankAccountId: account.id,
             externalId: t.id,
             amount: String(Math.abs(t.amount)),
             currency: t.currency,
-            type: t.amount >= 0 ? 'INCOME' as const : 'EXPENSE' as const,
+            type: t.amount >= 0 ? ('INCOME' as const) : ('EXPENSE' as const),
             counterparty: t.counterparty || null,
             description: t.description || null,
-            executedAt: t.date,
+            executedAt: t.executedAt,
           }))
-          
+
           const inserted = await db
             .insert(transactions)
             .values(toInsert)
@@ -154,9 +163,9 @@ export async function POST(request: NextRequest) {
               target: [transactions.bankAccountId, transactions.externalId],
             })
             .returning({ id: transactions.id })
-          
+
           totalAdded += inserted.length
-          
+
           results.push({
             accountId: account.id,
             bank: account.bank,
@@ -173,13 +182,13 @@ export async function POST(request: NextRequest) {
             added: 0,
           })
         }
-        
+
         // Update last sync time and potentially refresh token
         const updateData: Record<string, unknown> = {
           lastSyncAt: now,
           updatedAt: now,
         }
-        
+
         // Check if we got a new token (for Tochka refresh)
         if (account.bank === 'TOCHKA' && client instanceof TochkaClient) {
           const newToken = client.getAccessToken()
@@ -187,12 +196,11 @@ export async function POST(request: NextRequest) {
             updateData.accessToken = encryptToken(newToken)
           }
         }
-        
+
         await db
           .update(bankAccounts)
           .set(updateData)
           .where(eq(bankAccounts.id, account.id))
-        
       } catch (error) {
         results.push({
           accountId: account.id,
@@ -202,7 +210,7 @@ export async function POST(request: NextRequest) {
         })
       }
     }
-    
+
     return NextResponse.json({
       syncedAt: now.toISOString(),
       totalAdded,
@@ -212,11 +220,8 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.name === 'AuthError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
+
     console.error('Sync error:', error)
-    return NextResponse.json(
-      { error: 'Sync failed' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Sync failed' }, { status: 500 })
   }
 }

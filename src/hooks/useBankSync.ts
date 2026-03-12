@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 
 interface SyncResult {
   syncedAt: string
@@ -33,33 +33,33 @@ export function useBankSync(options: UseBankSyncOptions = {}) {
     syncOnMount = true,
     enabled = true,
   } = options
-  
+
   const router = useRouter()
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastSync, setLastSync] = useState<SyncResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  
+
   const sync = useCallback(async () => {
     if (isSyncing) return
-    
+
     setIsSyncing(true)
     setError(null)
-    
+
     try {
       const res = await fetch('/api/sync', { method: 'POST' })
-      
+
       if (!res.ok) {
         throw new Error('Sync failed')
       }
-      
+
       const data: SyncResult = await res.json()
       setLastSync(data)
-      
+
       // Refresh page data if new transactions were added
       if (data.totalAdded > 0) {
         router.refresh()
       }
-      
+
       return data
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sync error')
@@ -68,39 +68,40 @@ export function useBankSync(options: UseBankSyncOptions = {}) {
       setIsSyncing(false)
     }
   }, [isSyncing, router])
-  
+
   // Sync on mount
   useEffect(() => {
     if (enabled && syncOnMount) {
       sync()
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  
+  }, [enabled, sync, syncOnMount]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Polling interval
   useEffect(() => {
     if (!enabled) return
-    
+
     const interval = setInterval(() => {
       sync()
     }, intervalMs)
-    
+
     return () => clearInterval(interval)
   }, [enabled, intervalMs, sync])
-  
+
   // Sync when tab becomes visible
   useEffect(() => {
     if (!enabled) return
-    
+
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         sync()
       }
     }
-    
+
     document.addEventListener('visibilitychange', handleVisibility)
-    return () => document.removeEventListener('visibilitychange', handleVisibility)
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibility)
   }, [enabled, sync])
-  
+
   return {
     sync,
     isSyncing,
