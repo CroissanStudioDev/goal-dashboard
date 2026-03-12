@@ -19,11 +19,6 @@ const envSchema = z.object({
     .string()
     .min(32, 'ENCRYPTION_SECRET must be at least 32 characters'),
 
-  // Точка Bank (optional)
-  TOCHKA_CLIENT_ID: z.string().optional(),
-  TOCHKA_CLIENT_SECRET: z.string().optional(),
-  TOCHKA_REDIRECT_URI: z.string().url().optional(),
-
   // App URL
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 })
@@ -56,15 +51,4 @@ export function getEnv(): Env {
 
   cachedEnv = result.data
   return cachedEnv
-}
-
-/**
- * Check if Tochka is configured
- */
-export function isTochkaConfigured(): boolean {
-  return !!(
-    process.env.TOCHKA_CLIENT_ID &&
-    process.env.TOCHKA_CLIENT_SECRET &&
-    process.env.TOCHKA_REDIRECT_URI
-  )
 }

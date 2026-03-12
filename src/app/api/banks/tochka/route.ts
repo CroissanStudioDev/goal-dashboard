@@ -1,64 +1,101 @@
-import { randomUUID } from 'node:crypto'
-import { cookies } from 'next/headers'
-import { type NextRequest, NextResponse } from 'next/server'
+import { eq } from 'drizzle-orm'
+import { NextResponse } from 'next/server'
+import { bankAccounts, db } from '@/db'
 import { TochkaClient } from '@/lib/banks/tochka'
-import { isTochkaConfigured } from '@/lib/env'
+import { encryptToken } from '@/lib/crypto'
+import { requireUserId } from '@/lib/session'
 
-// GET /api/banks/tochka - Start OAuth flow
-export async function GET(request: NextRequest) {
-  if (!isTochkaConfigured()) {
-    return NextResponse.json(
-      { error: 'Tochka Bank not configured' },
-      { status: 400 },
-    )
-  }
-
-  const client = new TochkaClient({
-    clientId: process.env.TOCHKA_CLIENT_ID!,
-    clientSecret: process.env.TOCHKA_CLIENT_SECRET!,
-  })
-
+// POST /api/banks/tochka - Connect with JWT token
+export async function POST(request: Request) {
   try {
-    // Step 1: Create consent (valid for 1 year)
-    const expirationDate = new Date()
-    expirationDate.setFullYear(expirationDate.getFullYear() + 1)
+    const userId = await requireUserId()
+    const { token } = await request.json()
 
-    const consentId = await client.createConsent(expirationDate)
+    if (!token || typeof token !== 'string') {
+      return NextResponse.json({ error: 'Token is required' }, { status: 400 })
+    }
 
-    // Step 2: Generate state for CSRF protection
-    const state = randomUUID()
+    // Test token by fetching accounts
+    const client = new TochkaClient({ token })
 
-    // Store state and consentId in cookies (HttpOnly, secure)
-    const cookieStore = await cookies()
-    cookieStore.set('tochka_state', state, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 600, // 10 minutes
+    let accounts: Awaited<ReturnType<typeof client.getAccounts>>
+    try {
+      accounts = await client.getAccounts()
+    } catch (error) {
+      console.error('Tochka API error:', error)
+      return NextResponse.json(
+        { error: 'Invalid token or API error' },
+        { status: 400 },
+      )
+    }
+
+    if (accounts.length === 0) {
+      return NextResponse.json({ error: 'No accounts found' }, { status: 400 })
+    }
+
+    // Encrypt token
+    const encryptedToken = encryptToken(token)
+
+    // Save accounts to database
+    const savedAccounts = []
+
+    for (const acc of accounts) {
+      // Check if account already exists
+      const existing = await db
+        .select()
+        .from(bankAccounts)
+        .where(eq(bankAccounts.accountId, acc.id))
+        .limit(1)
+
+      if (existing.length > 0) {
+        // Update token
+        await db
+          .update(bankAccounts)
+          .set({
+            accessToken: encryptedToken,
+            isActive: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(bankAccounts.id, existing[0].id))
+
+        savedAccounts.push(existing[0])
+      } else {
+        // Create new
+        const [newAccount] = await db
+          .insert(bankAccounts)
+          .values({
+            userId,
+            bank: 'TOCHKA',
+            accountId: acc.id,
+            accountName: acc.name,
+            currency: acc.currency,
+            accessToken: encryptedToken,
+            isActive: true,
+          })
+          .returning()
+
+        savedAccounts.push(newAccount)
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      accounts: savedAccounts.map((a) => ({
+        id: a.id,
+        accountId: a.accountId,
+        accountName: a.accountName,
+        currency: a.currency,
+      })),
     })
-    cookieStore.set('tochka_consent', consentId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 600,
-    })
-
-    // Step 3: Redirect to authorization
-    const authUrl = client.getAuthUrl(
-      process.env.TOCHKA_REDIRECT_URI!,
-      consentId,
-      state,
-    )
-
-    return NextResponse.redirect(authUrl)
   } catch (error) {
-    console.error('Tochka auth init error:', error)
+    if (error instanceof Error && error.name === 'AuthError') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error'
-    const redirectUrl = new URL('/settings', request.url)
-    redirectUrl.searchParams.set('error', `tochka_init_failed: ${errorMessage}`)
-
-    return NextResponse.redirect(redirectUrl)
+    console.error('Tochka connect error:', error)
+    return NextResponse.json(
+      { error: 'Failed to connect Tochka' },
+      { status: 500 },
+    )
   }
 }

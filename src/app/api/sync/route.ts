@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { bankAccounts, db, transactions } from '@/db'
 import { TBankClient } from '@/lib/banks/tbank'
 import { TochkaClient } from '@/lib/banks/tochka'
-import { encryptToken, safeDecryptToken } from '@/lib/crypto'
+import { safeDecryptToken } from '@/lib/crypto'
 import { checkRateLimit, getClientId } from '@/lib/rate-limit'
 import { requireUserId } from '@/lib/session'
 
@@ -107,11 +107,10 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Decrypt tokens
-        const accessToken = safeDecryptToken(account.accessToken)
-        const refreshToken = safeDecryptToken(account.refreshToken)
+        // Decrypt token
+        const token = safeDecryptToken(account.accessToken)
 
-        if (!accessToken) {
+        if (!token) {
           results.push({
             accountId: account.id,
             bank: account.bank,
@@ -122,19 +121,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Create bank client
-        let client: TochkaClient | TBankClient
-        if (account.bank === 'TOCHKA') {
-          client = new TochkaClient({
-            clientId: process.env.TOCHKA_CLIENT_ID!,
-            clientSecret: process.env.TOCHKA_CLIENT_SECRET!,
-            accessToken,
-            refreshToken: refreshToken || undefined,
-          })
-        } else {
-          client = new TBankClient({
-            token: accessToken,
-          })
-        }
+        const client: TochkaClient | TBankClient =
+          account.bank === 'TOCHKA'
+            ? new TochkaClient({ token })
+            : new TBankClient({ token })
 
         // Fetch transactions (last 90 days)
         const fromDate = subDays(now, 90)
@@ -183,23 +173,10 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        // Update last sync time and potentially refresh token
-        const updateData: Record<string, unknown> = {
-          lastSyncAt: now,
-          updatedAt: now,
-        }
-
-        // Check if we got a new token (for Tochka refresh)
-        if (account.bank === 'TOCHKA' && client instanceof TochkaClient) {
-          const newToken = client.getAccessToken()
-          if (newToken && newToken !== accessToken) {
-            updateData.accessToken = encryptToken(newToken)
-          }
-        }
-
+        // Update last sync time
         await db
           .update(bankAccounts)
-          .set(updateData)
+          .set({ lastSyncAt: now, updatedAt: now })
           .where(eq(bankAccounts.id, account.id))
       } catch (error) {
         results.push({

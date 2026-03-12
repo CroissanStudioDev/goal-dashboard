@@ -7,18 +7,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 pnpm dev          # Start development server (localhost:3000)
 pnpm build        # Production build
-pnpm lint         # ESLint
+pnpm lint         # Biome linter
+pnpm lint:fix     # Auto-fix lint issues
 
 # Database (Drizzle)
 pnpm db:push      # Push schema to database (dev)
 pnpm db:generate  # Generate migrations
 pnpm db:migrate   # Run migrations
 pnpm db:studio    # Open Drizzle Studio UI
+
+# User management (no registration UI, requires app running)
+pnpm user:create <email> <password> [name]
 ```
 
 ## Architecture Overview
 
-Goal Dashboard is a Next.js 14 App Router application for tracking revenue goals with Russian bank integrations.
+Goal Dashboard is a Next.js 16 App Router application for tracking revenue goals with Russian bank integrations.
 
 ### Core Data Flow
 
