@@ -34,7 +34,7 @@ export function ConnectBankForm() {
         throw new Error(data.error || 'Failed to connect')
       }
 
-      setSuccess(`Подключено ${data.accounts.length} счёт(ов)`)
+      setSuccess(`Connected ${data.accounts.length} account(s)`)
       setToken('')
       router.refresh()
     } catch (err) {
@@ -46,47 +46,51 @@ export function ConnectBankForm() {
 
   const bankInfo = {
     tochka: {
-      label: 'Точка',
+      label: 'Tochka',
       description:
-        'Введите JWT-токен из раздела "Интеграции и API" в личном кабинете.',
-      placeholder: 'Вставьте JWT-токен...',
+        'Enter the JWT token from the "Integrations & API" section in your dashboard.',
+      placeholder: 'Paste JWT token...',
     },
     tbank: {
-      label: 'Т-Банк',
-      description: 'Введите API-токен из личного кабинета Т-Бизнес.',
-      placeholder: 'Вставьте API-токен...',
+      label: 'T-Bank',
+      description: 'Enter the API token from your T-Business dashboard.',
+      placeholder: 'Paste API token...',
     },
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Подключить банк</h3>
+    <div className="space-y-5">
+      <h3 className="text-base font-medium">Connect Bank</h3>
 
       <div className="flex gap-2">
         <button
           type="button"
           onClick={() => setBank('tochka')}
-          className={`px-4 py-2 rounded-lg ${
-            bank === 'tochka' ? 'bg-primary' : 'bg-bg-muted'
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            bank === 'tochka'
+              ? 'bg-primary text-white'
+              : 'bg-bg-muted text-text-secondary hover:text-text'
           }`}
         >
-          Точка
+          Tochka
         </button>
         <button
           type="button"
           onClick={() => setBank('tbank')}
-          className={`px-4 py-2 rounded-lg ${
-            bank === 'tbank' ? 'bg-primary' : 'bg-bg-muted'
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            bank === 'tbank'
+              ? 'bg-primary text-white'
+              : 'bg-bg-muted text-text-secondary hover:text-text'
           }`}
         >
-          Т-Банк
+          T-Bank
         </button>
       </div>
 
-      <form onSubmit={handleConnect} className="space-y-3">
-        <p className="text-sm text-text-secondary">{bankInfo[bank].description}</p>
+      <form onSubmit={handleConnect} className="space-y-4">
+        <p className="text-sm text-text-muted">{bankInfo[bank].description}</p>
         <Input
-          label="Токен"
+          label="Token"
           type="password"
           placeholder={bankInfo[bank].placeholder}
           value={token}
@@ -94,12 +98,12 @@ export function ConnectBankForm() {
           required
         />
         <Button type="submit" disabled={loading}>
-          {loading ? 'Подключение...' : `Подключить ${bankInfo[bank].label}`}
+          {loading ? 'Connecting...' : `Connect ${bankInfo[bank].label}`}
         </Button>
       </form>
 
-      {error && <p className="text-danger-text text-sm">{error}</p>}
-      {success && <p className="text-success-text text-sm">{success}</p>}
+      {error && <p className="text-danger text-sm">{error}</p>}
+      {success && <p className="text-success text-sm">{success}</p>}
     </div>
   )
 }

@@ -8,7 +8,7 @@ export function SyncSettings() {
   const [inputValue, setInputValue] = useState('')
 
   if (!isLoaded) {
-    return <div className="h-10 bg-bg-muted rounded animate-pulse" />
+    return <div className="h-10 bg-bg-muted rounded-xl animate-pulse" />
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -16,7 +16,7 @@ export function SyncSettings() {
     setInputValue(value)
 
     const num = parseInt(value, 10)
-    if (!isNaN(num) && num >= 0) {
+    if (!Number.isNaN(num) && num >= 0) {
       setInterval(num)
     } else if (value === '') {
       setInterval(0)
@@ -26,9 +26,9 @@ export function SyncSettings() {
   const displayValue = inputValue !== '' ? inputValue : String(intervalMinutes)
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <label className="block text-sm text-text-secondary">
-        Интервал автосинхронизации (минуты)
+        Auto-sync interval (minutes)
       </label>
       <div className="flex items-center gap-3">
         <input
@@ -38,17 +38,17 @@ export function SyncSettings() {
           onChange={handleChange}
           onBlur={() => setInputValue('')}
           placeholder="10"
-          className="w-24 px-3 py-2 bg-bg-muted border border-border-muted rounded-lg text-text focus:outline-none focus:border-primary"
+          className="w-24 px-4 py-3 bg-bg-muted rounded-xl text-text focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
         />
-        <span className="text-text-muted">мин</span>
+        <span className="text-text-muted text-sm">min</span>
         {intervalMinutes === 0 && (
-          <span className="text-warning-text text-sm">Отключено</span>
+          <span className="text-text-subtle text-sm">Disabled</span>
         )}
       </div>
       <p className="text-xs text-text-muted">
         {intervalMinutes > 0
-          ? `Транзакции будут синхронизироваться каждые ${intervalMinutes} мин пока открыт дашборд.`
-          : 'Автоматическая синхронизация отключена. Используйте кнопку ниже для ручной синхронизации.'}
+          ? `Transactions will sync every ${intervalMinutes} min while dashboard is open.`
+          : 'Auto-sync is disabled. Use the button below for manual sync.'}
       </p>
     </div>
   )

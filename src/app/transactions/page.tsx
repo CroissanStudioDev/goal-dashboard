@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { UserMenu } from '@/components/UserMenu'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
@@ -33,9 +33,7 @@ async function getAccounts(userId: string) {
       bank: bankAccounts.bank,
     })
     .from(bankAccounts)
-    .where(
-      and(eq(bankAccounts.userId, userId), eq(bankAccounts.isActive, true)),
-    )
+    .where(eq(bankAccounts.userId, userId))
 }
 
 function formatCurrency(amount: string | number, currency: string) {
@@ -63,13 +61,16 @@ export default async function TransactionsPage() {
   ])
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <main className="min-h-screen p-8 md:p-12">
+      <div className="max-w-3xl mx-auto space-y-8">
         <header className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">💰 Транзакции</h1>
-          <div className="flex items-center gap-4">
-            <a href="/" className="text-text-secondary hover:text-text">
-              ← На дашборд
+          <h1 className="text-2xl font-semibold">Transactions</h1>
+          <div className="flex items-center gap-6">
+            <a
+              href="/"
+              className="text-sm text-text-muted hover:text-text transition-colors"
+            >
+              Back to Dashboard
             </a>
             <UserMenu />
           </div>
@@ -79,7 +80,7 @@ export default async function TransactionsPage() {
         {accountsList.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>➕ Добавить транзакцию</CardTitle>
+              <CardTitle>Add Transaction</CardTitle>
             </CardHeader>
             <CardContent>
               <AddTransactionForm accounts={accountsList} />
@@ -90,23 +91,23 @@ export default async function TransactionsPage() {
         {/* Transaction List */}
         <Card>
           <CardHeader>
-            <CardTitle>📋 История ({txList.length})</CardTitle>
+            <CardTitle>History ({txList.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {txList.length === 0 ? (
-              <p className="text-text-muted">Нет транзакций</p>
+              <p className="text-text-muted text-sm">No transactions</p>
             ) : (
               <div className="space-y-2">
                 {txList.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex justify-between items-center p-3 bg-bg-elevated rounded-lg"
+                    className="flex justify-between items-center p-4 bg-bg-muted rounded-xl"
                   >
                     <div>
                       <div className="font-medium">
-                        {tx.counterparty || tx.description || 'Без описания'}
+                        {tx.counterparty || tx.description || 'No description'}
                       </div>
-                      <div className="text-sm text-text-muted">
+                      <div className="text-sm text-text-muted mt-0.5">
                         {new Date(tx.executedAt).toLocaleDateString('ru-RU', {
                           day: 'numeric',
                           month: 'short',
@@ -116,8 +117,8 @@ export default async function TransactionsPage() {
                       </div>
                     </div>
                     <div
-                      className={`font-mono font-medium ${
-                        tx.type === 'INCOME' ? 'text-success-text' : 'text-danger-text'
+                      className={`font-medium tabular-nums ${
+                        tx.type === 'INCOME' ? 'text-success' : 'text-danger'
                       }`}
                     >
                       {tx.type === 'INCOME' ? '+' : '-'}

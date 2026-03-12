@@ -15,26 +15,32 @@ interface TodayStatsProps {
 
 export function TodayStats({ today, yesterday, currency }: TodayStatsProps) {
   return (
-    <div className="flex justify-center gap-8 md:gap-16 text-lg md:text-xl">
+    <div className="flex justify-center gap-12 md:gap-20">
       <div className="text-center">
-        <div className="text-text-muted mb-1">Сегодня</div>
-        <div className="text-3xl md:text-4xl font-bold text-success-text">
+        <div className="text-sm text-text-muted mb-2 uppercase tracking-wide">
+          Today
+        </div>
+        <div className="text-2xl md:text-3xl font-semibold text-success">
           +{formatCurrency(today.amount, currency)}
         </div>
         <div className="text-text-subtle text-sm mt-1">
           {today.transactions}{' '}
-          {pluralize(today.transactions, 'платёж', 'платежа', 'платежей')}
+          {pluralize(today.transactions, 'payment', 'payments', 'payments')}
         </div>
       </div>
 
+      <div className="w-px bg-border" />
+
       <div className="text-center">
-        <div className="text-text-muted mb-1">Вчера</div>
-        <div className="text-3xl md:text-4xl font-bold text-text-secondary">
+        <div className="text-sm text-text-muted mb-2 uppercase tracking-wide">
+          Yesterday
+        </div>
+        <div className="text-2xl md:text-3xl font-semibold text-text-secondary">
           +{formatCurrency(yesterday.amount, currency)}
         </div>
         <div className="text-text-subtle text-sm mt-1">
           {yesterday.transactions}{' '}
-          {pluralize(yesterday.transactions, 'платёж', 'платежа', 'платежей')}
+          {pluralize(yesterday.transactions, 'payment', 'payments', 'payments')}
         </div>
       </div>
     </div>

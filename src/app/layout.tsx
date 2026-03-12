@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next'
-import { JetBrains_Mono } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
 
-const mono = JetBrains_Mono({
+const sans = Inter({
   subsets: ['latin', 'cyrillic'],
-  variable: '--font-mono',
+  variable: '--font-sans',
 })
 
 export const metadata: Metadata = {
@@ -30,10 +30,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ru" className={mono.variable}>
-      <body className="bg-bg text-text antialiased min-h-screen">
-        {children}
-      </body>
+    <html lang="ru" className={sans.variable}>
+      <body className="bg-bg text-text min-h-screen">{children}</body>
     </html>
   )
 }

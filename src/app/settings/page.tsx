@@ -53,13 +53,16 @@ export default async function SettingsPage() {
   ])
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <main className="min-h-screen p-8 md:p-12">
+      <div className="max-w-3xl mx-auto space-y-8">
         <header className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">⚙️ Настройки</h1>
-          <div className="flex items-center gap-4">
-            <a href="/" className="text-text-secondary hover:text-text">
-              ← На дашборд
+          <h1 className="text-2xl font-semibold">Settings</h1>
+          <div className="flex items-center gap-6">
+            <a
+              href="/"
+              className="text-sm text-text-muted hover:text-text transition-colors"
+            >
+              Back to Dashboard
             </a>
             <UserMenu />
           </div>
@@ -68,11 +71,11 @@ export default async function SettingsPage() {
         {/* Bank Accounts */}
         <Card>
           <CardHeader>
-            <CardTitle>🏦 Банковские счета</CardTitle>
+            <CardTitle>Bank Accounts</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <AccountsList accounts={accountsList} />
-            <hr className="border-border" />
+            <div className="h-px bg-border" />
             <ConnectBankForm />
           </CardContent>
         </Card>
@@ -80,15 +83,15 @@ export default async function SettingsPage() {
         {/* Goals */}
         <Card>
           <CardHeader>
-            <CardTitle>🎯 Цели</CardTitle>
+            <CardTitle>Goals</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <GoalsList goals={goalsList} />
             <a
               href="/setup"
-              className="inline-block px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg"
+              className="inline-flex px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-full text-sm font-medium transition-colors"
             >
-              + Новая цель
+              New Goal
             </a>
           </CardContent>
         </Card>
@@ -96,11 +99,11 @@ export default async function SettingsPage() {
         {/* Sync */}
         <Card>
           <CardHeader>
-            <CardTitle>🔄 Синхронизация</CardTitle>
+            <CardTitle>Synchronization</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <SyncSettings />
-            <hr className="border-border" />
+            <div className="h-px bg-border" />
             <SyncButton />
           </CardContent>
         </Card>

@@ -1,126 +1,73 @@
 @import "tailwindcss";
 
 /* ========================================
-   Design Tokens (Tailwind v4 CSS-first)
+   Design Tokens - CroissanStudio Style
+   Ultra-minimalist, calm, professional
    ======================================== */
 
 @theme {
-  /* === Base Colors (raw palette) === */
-  --color-black: #000000;
+  /* === Base Colors === */
+  --color-black: #1a1a2e;
   --color-white: #ffffff;
 
-  /* Gray scale */
-  --color-gray-50: #fafafa;
-  --color-gray-100: #f4f4f5;
-  --color-gray-200: #e4e4e7;
-  --color-gray-300: #d4d4d8;
-  --color-gray-400: #a1a1aa;
-  --color-gray-500: #71717a;
-  --color-gray-600: #52525b;
-  --color-gray-700: #3f3f46;
-  --color-gray-800: #27272a;
-  --color-gray-900: #18181b;
-  --color-gray-950: #09090b;
+  /* Gray scale - softer, lavender-tinted */
+  --color-gray-50: #fafafc;
+  --color-gray-100: #f4f4f8;
+  --color-gray-200: #e4e4ec;
+  --color-gray-300: #d4d4dc;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
 
-  /* Accent colors */
-  --color-blue-400: #60a5fa;
-  --color-blue-500: #3b82f6;
-  --color-blue-600: #2563eb;
-  --color-blue-700: #1d4ed8;
+  /* Primary - Indigo (single accent color) */
+  --color-indigo-50: #eef2ff;
+  --color-indigo-100: #e0e7ff;
+  --color-indigo-200: #c7d2fe;
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+  --color-indigo-700: #4338ca;
 
-  --color-green-400: #4ade80;
-  --color-green-500: #22c55e;
-  --color-green-600: #16a34a;
-
-  --color-yellow-400: #facc15;
-  --color-yellow-500: #eab308;
-  --color-yellow-600: #ca8a04;
-
-  --color-red-400: #f87171;
-  --color-red-500: #ef4444;
+  /* Semantic - muted status colors */
+  --color-emerald-600: #059669;
   --color-red-600: #dc2626;
 
-  /* === Semantic Tokens - set by light/dark mode below === */
-  --color-bg: var(--color-black);
-  --color-bg-elevated: var(--color-gray-900);
-  --color-bg-muted: var(--color-gray-800);
-  --color-bg-subtle: var(--color-gray-700);
+  /* === Semantic Tokens === */
+  --color-bg: #fafbff;
+  --color-bg-elevated: var(--color-white);
+  --color-bg-muted: #f0f2f8;
+  --color-bg-subtle: #e8ebf4;
 
-  --color-text: var(--color-white);
-  --color-text-secondary: var(--color-gray-400);
+  --color-text: var(--color-black);
+  --color-text-secondary: var(--color-gray-600);
   --color-text-muted: var(--color-gray-500);
-  --color-text-subtle: var(--color-gray-600);
+  --color-text-subtle: var(--color-gray-400);
 
-  --color-border: var(--color-gray-800);
-  --color-border-muted: var(--color-gray-700);
+  --color-border: var(--color-gray-200);
+  --color-border-muted: var(--color-gray-100);
 
-  --color-primary: var(--color-blue-600);
-  --color-primary-hover: var(--color-blue-700);
-  --color-primary-text: var(--color-blue-400);
+  --color-primary: var(--color-indigo-600);
+  --color-primary-hover: var(--color-indigo-700);
+  --color-primary-text: var(--color-indigo-600);
+  --color-primary-light: var(--color-indigo-100);
 
-  --color-success: var(--color-green-500);
-  --color-success-text: var(--color-green-400);
-  --color-warning: var(--color-yellow-500);
-  --color-warning-text: var(--color-yellow-400);
-  --color-danger: var(--color-red-500);
-  --color-danger-text: var(--color-red-400);
+  --color-success: var(--color-emerald-600);
+  --color-success-text: var(--color-emerald-600);
+  --color-danger: var(--color-red-600);
+  --color-danger-text: var(--color-red-600);
 
-  --color-goal-ahead: var(--color-green-500);
-  --color-goal-ahead-text: var(--color-green-400);
-  --color-goal-ontrack: var(--color-blue-500);
-  --color-goal-ontrack-text: var(--color-blue-400);
-  --color-goal-behind: var(--color-yellow-500);
-  --color-goal-behind-text: var(--color-yellow-400);
-  --color-goal-atrisk: var(--color-red-500);
-  --color-goal-atrisk-text: var(--color-red-400);
-}
-
-/* ========================================
-   Light Theme (System Preference)
-   ======================================== */
-@media (prefers-color-scheme: light) {
-  :root {
-    color-scheme: light;
-
-    /* Backgrounds */
-    --color-bg: var(--color-white);
-    --color-bg-elevated: var(--color-gray-50);
-    --color-bg-muted: var(--color-gray-100);
-    --color-bg-subtle: var(--color-gray-200);
-
-    /* Text */
-    --color-text: var(--color-gray-950);
-    --color-text-secondary: var(--color-gray-600);
-    --color-text-muted: var(--color-gray-500);
-    --color-text-subtle: var(--color-gray-400);
-
-    /* Borders */
-    --color-border: var(--color-gray-200);
-    --color-border-muted: var(--color-gray-300);
-
-    /* Interactive */
-    --color-primary: var(--color-blue-600);
-    --color-primary-hover: var(--color-blue-700);
-    --color-primary-text: var(--color-blue-600);
-
-    /* Status - darker for light mode readability */
-    --color-success: var(--color-green-600);
-    --color-success-text: var(--color-green-600);
-    --color-warning: var(--color-yellow-600);
-    --color-warning-text: var(--color-yellow-600);
-    --color-danger: var(--color-red-600);
-    --color-danger-text: var(--color-red-600);
-
-    /* Goal status */
-    --color-goal-ahead: var(--color-green-500);
-    --color-goal-ahead-text: var(--color-green-600);
-    --color-goal-ontrack: var(--color-blue-500);
-    --color-goal-ontrack-text: var(--color-blue-600);
-    --color-goal-behind: var(--color-yellow-500);
-    --color-goal-behind-text: var(--color-yellow-600);
-    --color-goal-atrisk: var(--color-red-500);
-    --color-goal-atrisk-text: var(--color-red-600);
-  }
+  /* Goal status - monochromatic indigo scale */
+  --color-goal-ahead: var(--color-indigo-600);
+  --color-goal-ahead-text: var(--color-indigo-600);
+  --color-goal-ontrack: var(--color-indigo-500);
+  --color-goal-ontrack-text: var(--color-indigo-500);
+  --color-goal-behind: var(--color-gray-500);
+  --color-goal-behind-text: var(--color-gray-500);
+  --color-goal-atrisk: var(--color-red-600);
+  --color-goal-atrisk-text: var(--color-red-600);
 }
 
 /* ========================================
@@ -130,44 +77,28 @@
   :root {
     color-scheme: dark;
 
-    /* Backgrounds */
-    --color-bg: var(--color-black);
-    --color-bg-elevated: var(--color-gray-900);
-    --color-bg-muted: var(--color-gray-800);
-    --color-bg-subtle: var(--color-gray-700);
+    --color-bg: #0f0f1a;
+    --color-bg-elevated: #1a1a2e;
+    --color-bg-muted: #252540;
+    --color-bg-subtle: #2f2f4a;
 
-    /* Text */
-    --color-text: var(--color-white);
-    --color-text-secondary: var(--color-gray-400);
-    --color-text-muted: var(--color-gray-500);
-    --color-text-subtle: var(--color-gray-600);
+    --color-text: #f8fafc;
+    --color-text-secondary: #94a3b8;
+    --color-text-muted: #64748b;
+    --color-text-subtle: #475569;
 
-    /* Borders */
-    --color-border: var(--color-gray-800);
-    --color-border-muted: var(--color-gray-700);
+    --color-border: #2f2f4a;
+    --color-border-muted: #252540;
 
-    /* Interactive */
-    --color-primary: var(--color-blue-600);
-    --color-primary-hover: var(--color-blue-700);
-    --color-primary-text: var(--color-blue-400);
+    --color-primary: var(--color-indigo-500);
+    --color-primary-hover: var(--color-indigo-400);
+    --color-primary-text: var(--color-indigo-400);
+    --color-primary-light: #1e1b4b;
 
-    /* Status */
-    --color-success: var(--color-green-500);
-    --color-success-text: var(--color-green-400);
-    --color-warning: var(--color-yellow-500);
-    --color-warning-text: var(--color-yellow-400);
-    --color-danger: var(--color-red-500);
-    --color-danger-text: var(--color-red-400);
-
-    /* Goal status */
-    --color-goal-ahead: var(--color-green-500);
-    --color-goal-ahead-text: var(--color-green-400);
-    --color-goal-ontrack: var(--color-blue-500);
-    --color-goal-ontrack-text: var(--color-blue-400);
-    --color-goal-behind: var(--color-yellow-500);
-    --color-goal-behind-text: var(--color-yellow-400);
-    --color-goal-atrisk: var(--color-red-500);
-    --color-goal-atrisk-text: var(--color-red-400);
+    --color-goal-ahead-text: var(--color-indigo-400);
+    --color-goal-ontrack-text: var(--color-indigo-400);
+    --color-goal-behind-text: var(--color-gray-400);
+    --color-goal-atrisk-text: #f87171;
   }
 }
 
@@ -176,9 +107,11 @@ html {
 }
 
 body {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* TV mode: hide scrollbars, cursor */
@@ -191,63 +124,38 @@ body {
   cursor: default;
 }
 
-/* Animated progress bar */
-.progress-bar {
-  transition: width 1s ease-out;
-}
-
-/* Glowing effect for numbers */
-.glow {
-  text-shadow: 0 0 20px currentColor;
-}
-
-/* Pulse animation for live indicator */
-@keyframes live-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.live-indicator {
-  animation: live-pulse 2s ease-in-out infinite;
-}
-
 /* Smooth number transitions */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* Custom scrollbar */
+/* Minimal scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #111;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 4px;
+  background: var(--color-border);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #444;
+  background: var(--color-gray-400);
 }
 
-/* Focus styles */
+/* Focus styles - subtle */
 :focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 /* Selection */
 ::selection {
-  background: #3b82f6;
-  color: white;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }

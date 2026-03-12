@@ -66,16 +66,16 @@ export default function SetupPage() {
   }
 
   return (
-    <main className="min-h-screen p-8 flex items-center justify-center">
+    <main className="min-h-screen p-8 md:p-12 flex items-center justify-center">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle>🎯 Новая цель</CardTitle>
+          <CardTitle>New Goal</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <Input
-              label="Название"
-              placeholder="Выручка за март"
+              label="Name"
+              placeholder="March Revenue"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
@@ -83,7 +83,7 @@ export default function SetupPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Цель"
+                label="Target"
                 type="number"
                 placeholder="1000000"
                 value={form.targetAmount}
@@ -98,9 +98,9 @@ export default function SetupPage() {
               <div>
                 <label
                   htmlFor="currency-select"
-                  className="block text-sm font-medium text-text-secondary mb-1"
+                  className="block text-sm font-medium text-text-secondary mb-2"
                 >
-                  Валюта
+                  Currency
                 </label>
                 <select
                   id="currency-select"
@@ -108,18 +108,18 @@ export default function SetupPage() {
                   onChange={(e) =>
                     setForm({ ...form, currency: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-bg-elevated border border-border-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 bg-bg-muted rounded-xl focus:ring-2 focus:ring-primary focus:outline-none transition-shadow"
                 >
-                  <option value="RUB">₽ RUB</option>
-                  <option value="USD">$ USD</option>
-                  <option value="EUR">€ EUR</option>
+                  <option value="RUB">RUB</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
                 </select>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Начало"
+                label="Start Date"
                 type="date"
                 value={form.startDate}
                 onChange={(e) =>
@@ -129,7 +129,7 @@ export default function SetupPage() {
               />
 
               <Input
-                label="Конец"
+                label="End Date"
                 type="date"
                 value={form.endDate}
                 onChange={(e) => setForm({ ...form, endDate: e.target.value })}
@@ -137,48 +137,48 @@ export default function SetupPage() {
               />
             </div>
 
-            <fieldset className="space-y-2">
+            <fieldset className="space-y-3">
               <legend className="block text-sm font-medium text-text-secondary">
-                Учитывать
+                Track
               </legend>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2">
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.trackIncome}
                     onChange={(e) =>
                       setForm({ ...form, trackIncome: e.target.checked })
                     }
-                    className="rounded border-border-muted bg-bg-elevated"
+                    className="w-4 h-4 rounded border-0 bg-bg-muted text-primary focus:ring-primary focus:ring-offset-0"
                   />
-                  <span>Доходы</span>
+                  <span className="text-sm">Income</span>
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.trackExpense}
                     onChange={(e) =>
                       setForm({ ...form, trackExpense: e.target.checked })
                     }
-                    className="rounded border-border-muted bg-bg-elevated"
+                    className="w-4 h-4 rounded border-0 bg-bg-muted text-primary focus:ring-primary focus:ring-offset-0"
                   />
-                  <span>Расходы</span>
+                  <span className="text-sm">Expenses</span>
                 </label>
               </div>
             </fieldset>
 
-            {error && <p className="text-danger-text text-sm">{error}</p>}
+            {error && <p className="text-danger text-sm">{error}</p>}
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 pt-2">
               <Button type="submit" disabled={loading} className="flex-1">
-                {loading ? 'Создание...' : 'Создать цель'}
+                {loading ? 'Creating...' : 'Create Goal'}
               </Button>
               <Button
                 type="button"
                 variant="secondary"
                 onClick={() => router.back()}
               >
-                Отмена
+                Cancel
               </Button>
             </div>
           </form>

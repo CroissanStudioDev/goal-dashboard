@@ -23,7 +23,7 @@ export default async function TVPage() {
   if (!goal) {
     return (
       <main className="min-h-screen bg-bg flex items-center justify-center">
-        <p className="text-4xl text-text-muted">Нет активной цели</p>
+        <p className="text-2xl text-text-muted">No active goal</p>
       </main>
     )
   }

@@ -47,41 +47,45 @@ const statusColors: Record<PaceStatus, string> = {
 }
 
 const statusBgColors: Record<PaceStatus, string> = {
-  ahead: 'bg-goal-ahead',
-  ontrack: 'bg-goal-ontrack',
-  behind: 'bg-goal-behind',
-  atrisk: 'bg-goal-atrisk',
+  ahead: 'bg-primary',
+  ontrack: 'bg-primary',
+  behind: 'bg-gray-400',
+  atrisk: 'bg-danger',
 }
 
 const statusLabels: Record<PaceStatus, string> = {
-  ahead: '🚀 Опережаем',
-  ontrack: '✓ По плану',
-  behind: '⚠️ Отстаём',
-  atrisk: '🔥 Под угрозой',
+  ahead: 'Ahead',
+  ontrack: 'On track',
+  behind: 'Behind',
+  atrisk: 'At risk',
+}
+
+function formatForecastDate(isoDate: string): string {
+  const date = new Date(isoDate)
+  return date.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+  })
 }
 
 export function TVDashboard({ data }: TVDashboardProps) {
   const { isFullscreen, toggleFullscreen } = useFullscreen()
   const [time, setTime] = useState(new Date())
 
-  // Auto-refresh page every 30 seconds
   useAutoRefresh(30_000)
 
-  // Sync banks based on user settings
   const { intervalMs, isEnabled, isLoaded } = useSyncSettings()
-  const { isSyncing, lastSync: _lastSync } = useBankSync({
+  const { isSyncing } = useBankSync({
     intervalMs,
     syncOnMount: true,
     enabled: isLoaded && isEnabled,
   })
 
-  // Update clock every second
   useEffect(() => {
     const interval = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(interval)
   }, [])
 
-  // Global keyboard handler for fullscreen
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'f' || e.key === 'F') toggleFullscreen()
@@ -92,19 +96,22 @@ export function TVDashboard({ data }: TVDashboardProps) {
 
   const { goal, progress, pace, today, yesterday } = data
   const percent = Math.min(progress.percent, 100)
+  const roundedDiff = Math.round(pace.percentDiff * 10) / 10
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: TV dashboard uses global keyboard listener
     <main
-      className="min-h-screen bg-black p-8 flex flex-col cursor-pointer tv-mode"
+      className="min-h-screen bg-bg p-12 flex flex-col cursor-pointer tv-mode"
       onClick={toggleFullscreen}
+      onKeyDown={(e) => e.key === 'f' && toggleFullscreen()}
+      role="button"
+      tabIndex={0}
     >
       {/* Header */}
-      <header className="flex justify-between items-start mb-4">
+      <header className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-3xl text-text-secondary">{goal.name}</h1>
-          <p className="text-text-subtle text-lg">
-            до{' '}
+          <h1 className="text-2xl font-medium text-text">{goal.name}</h1>
+          <p className="text-text-muted text-lg mt-1">
+            until{' '}
             {new Date(goal.endDate).toLocaleDateString('ru-RU', {
               day: 'numeric',
               month: 'long',
@@ -112,20 +119,20 @@ export function TVDashboard({ data }: TVDashboardProps) {
           </p>
         </div>
         <div className="text-right">
-          <div className="text-4xl font-mono text-text-secondary">
+          <div className="text-4xl font-light text-text tabular-nums">
             {time.toLocaleTimeString('ru-RU', {
               hour: '2-digit',
               minute: '2-digit',
             })}
           </div>
-          <div className="flex items-center gap-2 text-text-muted justify-end">
+          <div className="flex items-center gap-2 text-text-muted justify-end mt-2">
             <span
-              className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-warning animate-pulse' : 'bg-success'}`}
+              className={`w-2 h-2 rounded-full transition-colors ${isSyncing ? 'bg-primary animate-pulse' : 'bg-success'}`}
             />
-            <span className="text-sm">{isSyncing ? 'SYNC' : 'LIVE'}</span>
+            <span className="text-sm">{isSyncing ? 'Syncing' : 'Live'}</span>
             {!isFullscreen && (
               <span className="text-xs text-text-subtle ml-2">
-                (клик для fullscreen)
+                (click for fullscreen)
               </span>
             )}
           </div>
@@ -135,72 +142,84 @@ export function TVDashboard({ data }: TVDashboardProps) {
       {/* Main content */}
       <div className="flex-1 flex flex-col justify-center">
         {/* Big number */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-12">
           <div
-            className={`text-[10rem] leading-none font-bold tabular-nums ${statusColors[pace.status]}`}
-            style={{ textShadow: '0 0 60px currentColor' }}
+            className={`text-[8rem] md:text-[10rem] leading-none font-semibold tabular-nums tracking-tight ${statusColors[pace.status]}`}
           >
             {formatCurrency(progress.current, goal.currency)}
           </div>
-          <div className="text-4xl text-text-muted mt-4">
-            из {formatCurrency(progress.target, goal.currency)}
+          <div className="text-3xl text-text-muted mt-6">
+            of {formatCurrency(progress.target, goal.currency)}
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="relative mx-auto w-full max-w-4xl">
-          <div className="h-12 bg-bg-elevated rounded-full overflow-hidden">
+        <div className="mx-auto w-full max-w-4xl">
+          <div className="h-3 bg-bg-muted rounded-full overflow-hidden">
             <div
               className={`h-full ${statusBgColors[pace.status]} transition-all duration-1000 rounded-full`}
               style={{ width: `${percent}%` }}
             />
           </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-3xl font-bold text-text drop-shadow-lg">
-              {formatPercent(percent)}
-            </span>
+          <div className="flex justify-between mt-3 text-lg text-text-muted">
+            <span>{formatPercent(percent)}</span>
+            <span>100%</span>
           </div>
         </div>
 
         {/* Pace */}
-        <div className="text-center mt-8 text-3xl">
-          <span className={statusColors[pace.status]}>
+        <div className="text-center mt-12 text-2xl">
+          <span className={`font-medium ${statusColors[pace.status]}`}>
             {statusLabels[pace.status]}
-            {pace.percentDiff !== 0 && (
-              <span className="ml-2">
-                {pace.percentDiff > 0 ? '+' : ''}
-                {pace.percentDiff}%
+            {roundedDiff !== 0 && (
+              <span className="ml-2 font-normal">
+                {roundedDiff > 0 ? '+' : ''}
+                {roundedDiff}%
               </span>
             )}
           </span>
-          <span className="text-text-muted mx-4">•</span>
+          <span className="text-text-subtle mx-6">|</span>
           <span className="text-text-secondary">
-            Прогноз: <span className="text-text">{pace.forecastDate}</span>
+            Forecast:{' '}
+            <span className="text-text font-medium">
+              {formatForecastDate(pace.forecastDate)}
+            </span>
           </span>
         </div>
       </div>
 
       {/* Footer stats */}
-      <footer className="flex justify-center gap-24 text-2xl pt-8 border-t border-border">
+      <footer className="flex justify-center gap-24 text-xl pt-12 border-t border-border">
         <div className="text-center">
-          <div className="text-text-muted mb-2">Сегодня</div>
-          <div className="text-5xl font-bold text-success-text">
+          <div className="text-text-muted mb-2 text-sm uppercase tracking-wide">
+            Today
+          </div>
+          <div className="text-4xl font-semibold text-success">
             +{formatCurrency(today.amount, goal.currency)}
           </div>
-          <div className="text-text-subtle mt-1">
+          <div className="text-text-subtle mt-2">
             {today.transactions}{' '}
-            {pluralize(today.transactions, 'платёж', 'платежа', 'платежей')}
+            {pluralize(today.transactions, 'payment', 'payments', 'payments')}
           </div>
         </div>
 
+        <div className="w-px bg-border" />
+
         <div className="text-center">
-          <div className="text-text-muted mb-2">Вчера</div>
-          <div className="text-5xl font-bold text-text-secondary">
+          <div className="text-text-muted mb-2 text-sm uppercase tracking-wide">
+            Yesterday
+          </div>
+          <div className="text-4xl font-semibold text-text-secondary">
             +{formatCurrency(yesterday.amount, goal.currency)}
           </div>
-          <div className="text-text-subtle mt-1">
+          <div className="text-text-subtle mt-2">
             {yesterday.transactions}{' '}
-            {pluralize(yesterday.transactions, 'платёж', 'платежа', 'платежей')}
+            {pluralize(
+              yesterday.transactions,
+              'payment',
+              'payments',
+              'payments',
+            )}
           </div>
         </div>
       </footer>

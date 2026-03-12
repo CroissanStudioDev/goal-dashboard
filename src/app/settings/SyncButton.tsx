@@ -28,12 +28,12 @@ export function SyncButton() {
         if (res.status === 429) {
           setResult({
             success: false,
-            message: `Слишком много запросов. Подождите ${data.retryAfter || 60} сек.`,
+            message: `Too many requests. Wait ${data.retryAfter || 60}s.`,
           })
         } else {
           setResult({
             success: false,
-            message: data.error || 'Ошибка синхронизации',
+            message: data.error || 'Sync failed',
           })
         }
         return
@@ -46,14 +46,14 @@ export function SyncButton() {
 
       setResult({
         success: true,
-        message: `Синхронизировано ${synced} счёт(ов), добавлено ${added} транзакций`,
+        message: `Synced ${synced} account(s), added ${added} transactions`,
       })
 
       router.refresh()
     } catch (error) {
       setResult({
         success: false,
-        message: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        message: error instanceof Error ? error.message : 'Unknown error',
       })
     } finally {
       setLoading(false)
@@ -61,16 +61,14 @@ export function SyncButton() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <Button onClick={handleSync} disabled={loading} variant="secondary">
-        {loading ? 'Синхронизация...' : 'Синхронизировать сейчас'}
+        {loading ? 'Syncing...' : 'Sync Now'}
       </Button>
 
       {result && (
         <p
-          className={
-            result.success ? 'text-success-text text-sm' : 'text-danger-text text-sm'
-          }
+          className={`text-sm ${result.success ? 'text-success' : 'text-danger'}`}
         >
           {result.message}
         </p>

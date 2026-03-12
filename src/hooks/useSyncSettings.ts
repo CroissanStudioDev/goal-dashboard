@@ -14,7 +14,7 @@ export function useSyncSettings() {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored !== null) {
       const parsed = parseInt(stored, 10)
-      if (!isNaN(parsed) && parsed >= 0) {
+      if (!Number.isNaN(parsed) && parsed >= 0) {
         setIntervalMinutes(parsed)
       }
     }

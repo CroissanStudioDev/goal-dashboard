@@ -52,7 +52,6 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
         throw new Error(data.error || 'Failed to add transaction')
       }
 
-      // Reset form
       setForm({
         ...form,
         amount: '',
@@ -70,30 +69,30 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
 
   if (accounts.length === 0) {
     return (
-      <p className="text-text-muted">
-        Сначала подключите банковский счёт в{' '}
-        <a href="/settings" className="text-primary-text hover:underline">
-          настройках
+      <p className="text-text-muted text-sm">
+        First connect a bank account in{' '}
+        <a href="/settings" className="text-primary hover:underline">
+          settings
         </a>
       </p>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="space-y-1">
+        <div className="space-y-2">
           <label
             htmlFor="account-select"
             className="block text-sm font-medium text-text-secondary"
           >
-            Счёт
+            Account
           </label>
           <select
             id="account-select"
             value={form.accountId}
             onChange={(e) => setForm({ ...form, accountId: e.target.value })}
-            className="w-full px-4 py-2 rounded-lg bg-bg-muted border border-border-muted text-text"
+            className="w-full px-4 py-3 rounded-xl bg-bg-muted text-text focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
             required
           >
             {accounts.map((acc) => (
@@ -104,12 +103,12 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
           </select>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           <label
             htmlFor="type-select"
             className="block text-sm font-medium text-text-secondary"
           >
-            Тип
+            Type
           </label>
           <select
             id="type-select"
@@ -117,15 +116,15 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
             onChange={(e) =>
               setForm({ ...form, type: e.target.value as 'INCOME' | 'EXPENSE' })
             }
-            className="w-full px-4 py-2 rounded-lg bg-bg-muted border border-border-muted text-text"
+            className="w-full px-4 py-3 rounded-xl bg-bg-muted text-text focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
           >
-            <option value="INCOME">Приход</option>
-            <option value="EXPENSE">Расход</option>
+            <option value="INCOME">Income</option>
+            <option value="EXPENSE">Expense</option>
           </select>
         </div>
 
         <Input
-          label="Сумма"
+          label="Amount"
           type="number"
           placeholder="100000"
           value={form.amount}
@@ -136,7 +135,7 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
         />
 
         <Input
-          label="Дата/время"
+          label="Date/Time"
           type="datetime-local"
           value={form.executedAt}
           onChange={(e) => setForm({ ...form, executedAt: e.target.value })}
@@ -146,24 +145,24 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
 
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="Контрагент"
-          placeholder="ООО Ромашка"
+          label="Counterparty"
+          placeholder="Company Name"
           value={form.counterparty}
           onChange={(e) => setForm({ ...form, counterparty: e.target.value })}
         />
 
         <Input
-          label="Описание"
-          placeholder="Оплата по договору"
+          label="Description"
+          placeholder="Payment details"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
         />
       </div>
 
-      {error && <p className="text-danger-text text-sm">{error}</p>}
+      {error && <p className="text-danger text-sm">{error}</p>}
 
       <Button type="submit" disabled={loading}>
-        {loading ? 'Добавление...' : 'Добавить'}
+        {loading ? 'Adding...' : 'Add Transaction'}
       </Button>
     </form>
   )

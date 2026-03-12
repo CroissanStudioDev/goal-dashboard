@@ -3,29 +3,28 @@
 import { useEffect, useState } from 'react'
 
 export function LiveIndicator() {
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [time, setTime] = useState<string>('')
 
   useEffect(() => {
-    setLastUpdate(new Date())
-
-    const interval = setInterval(() => {
-      setLastUpdate(new Date())
-    }, 60_000)
-
+    const updateTime = () => {
+      setTime(
+        new Date().toLocaleTimeString('ru-RU', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      )
+    }
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
     return () => clearInterval(interval)
   }, [])
 
-  if (!lastUpdate) return null
-
-  const timeStr = lastUpdate.toLocaleTimeString('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  if (!time) return null
 
   return (
-    <div className="flex items-center gap-2 text-text-secondary">
-      <span className="w-2 h-2 bg-success rounded-full live-indicator" />
-      <span className="text-sm">Обновлено в {timeStr}</span>
+    <div className="flex items-center gap-2 text-sm text-text-muted">
+      <span className="w-1.5 h-1.5 rounded-full bg-success" />
+      <span>{time}</span>
     </div>
   )
 }

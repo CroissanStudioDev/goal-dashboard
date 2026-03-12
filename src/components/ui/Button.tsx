@@ -3,21 +3,22 @@
 import { type ButtonHTMLAttributes, forwardRef } from 'react'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'sm' | 'md' | 'lg'
 }
 
 const variants = {
-  primary: 'bg-primary hover:bg-primary-hover text-text',
-  secondary: 'bg-bg-subtle hover:bg-bg-muted text-text',
-  danger: 'bg-danger hover:opacity-90 text-text',
-  ghost: 'bg-transparent hover:bg-bg-muted text-text-secondary',
+  primary: 'bg-primary hover:bg-primary-hover text-white',
+  secondary:
+    'border border-border hover:border-primary hover:text-primary text-text bg-transparent',
+  ghost: 'hover:bg-bg-muted text-text-secondary hover:text-text bg-transparent',
+  danger: 'bg-danger hover:opacity-90 text-white',
 }
 
 const sizes = {
   sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-base',
-  lg: 'px-6 py-3 text-lg',
+  md: 'px-5 py-2.5 text-sm',
+  lg: 'px-6 py-3 text-base',
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -31,7 +32,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={`
           ${variants[variant]}
           ${sizes[size]}
-          rounded-lg font-medium transition-colors
+          rounded-full font-medium transition-all duration-200
           disabled:opacity-50 disabled:cursor-not-allowed
           ${className}
         `}

@@ -37,14 +37,14 @@ function SignInForm() {
       })
 
       if (result.error) {
-        setError(result.error.message || 'Ошибка входа')
+        setError(result.error.message || 'Sign in failed')
         return
       }
 
       router.push(callbackUrl)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Неизвестная ошибка')
+      setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
@@ -52,12 +52,12 @@ function SignInForm() {
 
   return (
     <main className="min-h-screen p-8 flex items-center justify-center bg-bg">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>🔐 Вход</CardTitle>
+          <CardTitle>Sign In</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <Input
               label="Email"
               type="email"
@@ -69,19 +69,19 @@ function SignInForm() {
             />
 
             <Input
-              label="Пароль"
+              label="Password"
               type="password"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
               autoComplete="current-password"
             />
 
-            {error && <p className="text-danger-text text-sm">{error}</p>}
+            {error && <p className="text-danger text-sm">{error}</p>}
 
             <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Вход...' : 'Войти'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
         </CardContent>
@@ -95,9 +95,9 @@ export default function SignInPage() {
     <Suspense
       fallback={
         <main className="min-h-screen p-8 flex items-center justify-center bg-bg">
-          <Card className="w-full max-w-md">
-            <CardContent className="p-8 text-center text-text-muted">
-              Загрузка...
+          <Card className="w-full max-w-sm">
+            <CardContent className="py-12 text-center text-text-muted">
+              Loading...
             </CardContent>
           </Card>
         </main>
