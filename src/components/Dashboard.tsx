@@ -47,9 +47,21 @@ const statusLabels: Record<PaceStatus, string> = {
 }
 
 function formatForecastDate(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString('ru-RU', {
+  const date = new Date(isoDate)
+  const currentYear = new Date().getFullYear()
+  const forecastYear = date.getFullYear()
+
+  if (forecastYear === currentYear) {
+    return date.toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+    })
+  }
+
+  return date.toLocaleDateString('ru-RU', {
     day: 'numeric',
     month: 'long',
+    year: 'numeric',
   })
 }
 
