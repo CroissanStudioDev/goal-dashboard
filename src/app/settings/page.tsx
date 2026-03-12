@@ -1,13 +1,11 @@
 import { and, desc, eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { UserMenu } from '@/components/UserMenu'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { bankAccounts, db, goals } from '@/db'
 import { getAuthSession } from '@/lib/session'
 import { AccountsList } from './AccountsList'
 import { ConnectBankForm } from './ConnectBankForm'
 import { GoalsList } from './GoalsList'
-import { SyncButton } from './SyncButton'
 import { SyncSettings } from './SyncSettings'
 
 export const dynamic = 'force-dynamic'
@@ -54,59 +52,50 @@ export default async function SettingsPage() {
 
   return (
     <main className="min-h-screen p-8 md:p-12">
-      <div className="max-w-3xl mx-auto space-y-8">
+      <div className="max-w-2xl mx-auto space-y-12">
         <header className="flex justify-between items-center">
-          <h1 className="text-2xl font-semibold">Settings</h1>
+          <h1 className="text-xl font-semibold">Настройки</h1>
           <div className="flex items-center gap-6">
             <a
               href="/"
               className="text-sm text-text-muted hover:text-text transition-colors"
             >
-              Back to Dashboard
+              Назад
             </a>
             <UserMenu />
           </div>
         </header>
 
         {/* Bank Accounts */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Bank Accounts</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <AccountsList accounts={accountsList} />
-            <div className="h-px bg-border" />
-            <ConnectBankForm />
-          </CardContent>
-        </Card>
+        <section className="space-y-4">
+          <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+            Счета
+          </h2>
+          <AccountsList accounts={accountsList} />
+          <ConnectBankForm />
+        </section>
 
         {/* Goals */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Goals</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <GoalsList goals={goalsList} />
-            <a
-              href="/setup"
-              className="inline-flex px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-full text-sm font-medium transition-colors"
-            >
-              New Goal
-            </a>
-          </CardContent>
-        </Card>
+        <section className="space-y-4">
+          <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+            Цели
+          </h2>
+          <GoalsList goals={goalsList} />
+          <a
+            href="/setup"
+            className="inline-flex px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-full text-sm font-medium transition-colors"
+          >
+            Новая цель
+          </a>
+        </section>
 
         {/* Sync */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Synchronization</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <SyncSettings />
-            <div className="h-px bg-border" />
-            <SyncButton />
-          </CardContent>
-        </Card>
+        <section className="space-y-4">
+          <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+            Синхронизация
+          </h2>
+          <SyncSettings />
+        </section>
       </div>
     </main>
   )

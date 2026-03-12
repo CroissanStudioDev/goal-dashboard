@@ -16,54 +16,48 @@ interface AccountsListProps {
 }
 
 const bankLabels = {
-  TOCHKA: 'Tochka',
-  TBANK: 'T-Bank',
+  TOCHKA: 'Точка',
+  TBANK: 'Т-Банк',
 }
 
 export function AccountsList({ accounts }: AccountsListProps) {
   const router = useRouter()
 
   const handleDisconnect = async (id: string) => {
-    if (!confirm('Disconnect this account?')) return
+    if (!confirm('Отключить счёт?')) return
 
     await fetch(`/api/accounts/${id}`, { method: 'DELETE' })
     router.refresh()
   }
 
   if (accounts.length === 0) {
-    return <p className="text-text-muted text-sm">No connected accounts</p>
+    return <p className="text-sm text-text-muted">Нет подключённых счетов</p>
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {accounts.map((account) => (
         <div
           key={account.id}
-          className="flex items-center justify-between p-4 bg-bg-muted rounded-xl"
+          className="flex items-center justify-between p-4 bg-bg-elevated rounded-xl"
         >
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-medium">{account.accountName}</span>
-              <span className="text-xs px-2 py-0.5 bg-bg-subtle rounded-full text-text-muted">
+              <span className="font-medium text-sm">{account.accountName}</span>
+              <span className="text-xs px-2 py-0.5 bg-bg-muted rounded-full text-text-muted">
                 {bankLabels[account.bank]}
               </span>
             </div>
-            <div className="text-sm text-text-muted mt-1">
-              {account.accountId} · {account.currency}
+            <div className="text-xs text-text-muted mt-1">
+              {account.currency}
             </div>
-            {account.lastSyncAt && (
-              <div className="text-xs text-text-subtle mt-1">
-                Last sync:{' '}
-                {new Date(account.lastSyncAt).toLocaleString('ru-RU')}
-              </div>
-            )}
           </div>
           <button
             type="button"
             onClick={() => handleDisconnect(account.id)}
-            className="text-danger hover:opacity-70 text-sm transition-opacity"
+            className="text-xs text-danger hover:opacity-70 transition-opacity"
           >
-            Disconnect
+            Удалить
           </button>
         </div>
       ))}

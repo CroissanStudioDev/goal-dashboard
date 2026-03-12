@@ -3,86 +3,32 @@
 import { useBankSync } from '@/hooks/useBankSync'
 import { useSyncSettings } from '@/hooks/useSyncSettings'
 
-interface SyncStatusProps {
-  verbose?: boolean
-}
-
-export function SyncStatus({ verbose = false }: SyncStatusProps) {
+export function SyncStatus() {
   const { intervalMs, isEnabled, isLoaded } = useSyncSettings()
-  const { isSyncing, lastSync, error, sync } = useBankSync({
+  const { isSyncing, error } = useBankSync({
     intervalMs,
     syncOnMount: true,
     enabled: isLoaded && isEnabled,
   })
 
-  if (!verbose) {
+  if (!isLoaded) return null
+
+  if (error) {
     return (
-      <div className="flex items-center gap-2 text-sm text-text-muted">
-        {isSyncing ? (
-          <>
-            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-            <span>Syncing...</span>
-          </>
-        ) : lastSync ? (
-          <>
-            <span className="w-1.5 h-1.5 bg-success rounded-full" />
-            <span>
-              {lastSync.totalAdded > 0
-                ? `+${lastSync.totalAdded} new`
-                : 'Up to date'}
-            </span>
-          </>
-        ) : error ? (
-          <>
-            <span className="w-1.5 h-1.5 bg-danger rounded-full" />
-            <span>Sync error</span>
-          </>
-        ) : null}
+      <div className="fixed bottom-6 right-6 z-50 bg-bg-elevated border border-danger/20 rounded-xl px-4 py-3 text-sm text-danger shadow-lg">
+        Ошибка синхронизации
       </div>
     )
   }
 
-  return (
-    <div className="space-y-3 text-sm">
-      <div className="flex items-center justify-between">
-        <span className="text-text-secondary">Bank Sync</span>
-        <button
-          type="button"
-          onClick={() => sync()}
-          disabled={isSyncing}
-          className="text-primary hover:text-primary-hover disabled:opacity-50 transition-colors"
-        >
-          {isSyncing ? 'Loading...' : 'Refresh'}
-        </button>
+  if (isSyncing) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50 bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-muted shadow-lg flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+        Синхронизация...
       </div>
+    )
+  }
 
-      {lastSync && (
-        <div className="text-text-muted">
-          Last sync: {new Date(lastSync.syncedAt).toLocaleTimeString('ru-RU')}
-          {lastSync.totalAdded > 0 && (
-            <span className="text-success ml-2">
-              +{lastSync.totalAdded} transactions
-            </span>
-          )}
-        </div>
-      )}
-
-      {error && <div className="text-danger">{error}</div>}
-
-      {lastSync?.results && (
-        <div className="space-y-1">
-          {lastSync.results.map((r) => (
-            <div
-              key={`${r.bank}-${r.accountId}`}
-              className="text-xs text-text-subtle"
-            >
-              {r.bank}: {r.status}
-              {r.added !== undefined && r.added > 0 && ` (+${r.added})`}
-              {r.error && ` - ${r.error}`}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
+  return null
 }

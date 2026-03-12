@@ -2,14 +2,6 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Input,
-} from '@/components/ui'
 import { signIn } from '@/lib/auth-client'
 
 function SignInForm() {
@@ -19,11 +11,7 @@ function SignInForm() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-  })
+  const [form, setForm] = useState({ email: '', password: '' })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,55 +25,56 @@ function SignInForm() {
       })
 
       if (result.error) {
-        setError(result.error.message || 'Sign in failed')
+        setError(result.error.message || 'Ошибка входа')
         return
       }
 
       router.push(callbackUrl)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : 'Неизвестная ошибка')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <main className="min-h-screen p-8 flex items-center justify-center bg-bg">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Sign In</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              label="Email"
-              type="email"
-              placeholder="you@example.com"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
-              autoComplete="email"
-            />
+    <main className="min-h-screen flex items-center justify-center p-8">
+      <div className="w-full max-w-xs space-y-6">
+        <h1 className="text-xl font-semibold text-center">Вход</h1>
 
-            <Input
-              label="Password"
-              type="password"
-              placeholder="Enter your password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-              autoComplete="current-password"
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            required
+            autoComplete="email"
+            className="w-full px-4 py-3 bg-bg-elevated rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+          />
 
-            {error && <p className="text-danger text-sm">{error}</p>}
+          <input
+            type="password"
+            placeholder="Пароль"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            required
+            autoComplete="current-password"
+            className="w-full px-4 py-3 bg-bg-elevated rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+          />
 
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          {error && <p className="text-xs text-danger text-center">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-full font-medium disabled:opacity-50 transition-colors"
+          >
+            {loading ? 'Вход...' : 'Войти'}
+          </button>
+        </form>
+      </div>
     </main>
   )
 }
@@ -94,12 +83,8 @@ export default function SignInPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen p-8 flex items-center justify-center bg-bg">
-          <Card className="w-full max-w-sm">
-            <CardContent className="py-12 text-center text-text-muted">
-              Loading...
-            </CardContent>
-          </Card>
+        <main className="min-h-screen flex items-center justify-center">
+          <div className="text-text-muted">Загрузка...</div>
         </main>
       }
     >

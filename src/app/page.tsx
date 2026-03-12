@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AutoRefresh } from '@/components/AutoRefresh'
 import { GoalProgress } from '@/components/GoalProgress'
-import { LiveIndicator } from '@/components/LiveIndicator'
 import { SyncStatus } from '@/components/SyncStatus'
 import { TodayStats } from '@/components/TodayStats'
 import { UserMenu } from '@/components/UserMenu'
@@ -29,22 +28,14 @@ export default async function DashboardPage() {
   if (!goal) {
     return (
       <main className="min-h-screen p-8 flex flex-col items-center justify-center">
-        <h1 className="text-3xl font-semibold mb-4">Goal Dashboard</h1>
-        <p className="text-text-secondary text-lg mb-8">No active goals</p>
-        <div className="flex gap-4">
-          <Link
-            href="/setup"
-            className="px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-full font-medium transition-colors"
-          >
-            Create Goal
-          </Link>
-          <Link
-            href="/settings"
-            className="px-6 py-3 border border-border hover:border-primary text-text rounded-full font-medium transition-colors"
-          >
-            Settings
-          </Link>
-        </div>
+        <h1 className="text-2xl font-semibold mb-3">Нет активных целей</h1>
+        <p className="text-text-muted mb-8">Создайте цель для отслеживания</p>
+        <Link
+          href="/setup"
+          className="px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-full font-medium transition-colors"
+        >
+          Создать цель
+        </Link>
       </main>
     )
   }
@@ -62,36 +53,15 @@ export default async function DashboardPage() {
       <SyncStatus />
 
       {/* Header */}
-      <header className="flex justify-between items-start mb-12">
-        <div>
-          <h1 className="text-xl font-medium text-text">{goal.name}</h1>
-          <p className="text-sm text-text-muted mt-1">
-            {new Date(goal.startDate).toLocaleDateString('ru-RU')} —{' '}
-            {new Date(goal.endDate).toLocaleDateString('ru-RU')}
-          </p>
-        </div>
+      <header className="flex justify-between items-center mb-16">
+        <h1 className="text-lg font-medium text-text-secondary">{goal.name}</h1>
         <div className="flex items-center gap-6">
-          <LiveIndicator />
-          <nav className="flex items-center gap-4 text-sm">
-            <Link
-              href="/tv"
-              className="text-text-muted hover:text-text transition-colors"
-            >
-              TV
-            </Link>
-            <Link
-              href="/transactions"
-              className="text-text-muted hover:text-text transition-colors"
-            >
-              Transactions
-            </Link>
-            <Link
-              href="/settings"
-              className="text-text-muted hover:text-text transition-colors"
-            >
-              Settings
-            </Link>
-          </nav>
+          <Link
+            href="/settings"
+            className="text-sm text-text-muted hover:text-text transition-colors"
+          >
+            Настройки
+          </Link>
           <UserMenu />
         </div>
       </header>
@@ -107,7 +77,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Footer stats */}
-      <footer className="mt-12 pt-8 border-t border-border">
+      <footer className="mt-16 pt-8 border-t border-border">
         <TodayStats
           today={dayStats.today}
           yesterday={dayStats.yesterday}

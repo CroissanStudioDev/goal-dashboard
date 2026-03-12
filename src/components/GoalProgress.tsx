@@ -30,10 +30,10 @@ const statusBgColors: Record<PaceStatus, string> = {
 }
 
 const statusLabels: Record<PaceStatus, string> = {
-  ahead: 'Ahead of schedule',
-  ontrack: 'On track',
-  behind: 'Behind schedule',
-  atrisk: 'At risk',
+  ahead: 'Опережаем',
+  ontrack: 'По плану',
+  behind: 'Отстаём',
+  atrisk: 'Под угрозой',
 }
 
 function formatForecastDate(isoDate: string): string {
@@ -54,51 +54,40 @@ export function GoalProgress({
   const roundedDiff = Math.round(pace.percentDiff * 10) / 10
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
       {/* Big number */}
       <div className="text-center">
         <div
-          className={`text-6xl md:text-7xl lg:text-8xl font-semibold tabular-nums tracking-tight ${statusColors[pace.status]}`}
+          className={`text-5xl md:text-6xl lg:text-7xl font-semibold tabular-nums tracking-tight ${statusColors[pace.status]}`}
         >
           {formatCurrency(current, currency)}
         </div>
-        <div className="text-xl md:text-2xl text-text-muted mt-3">
-          of {formatCurrency(target, currency)}
+        <div className="text-lg text-text-muted mt-2">
+          из {formatCurrency(target, currency)}
         </div>
       </div>
 
-      {/* Progress bar - minimal */}
-      <div className="max-w-2xl mx-auto">
-        <div className="h-2 bg-bg-muted rounded-full overflow-hidden">
+      {/* Progress bar */}
+      <div className="max-w-xl mx-auto">
+        <div className="h-1.5 bg-bg-muted rounded-full overflow-hidden">
           <div
             className={`h-full ${statusBgColors[pace.status]} rounded-full transition-all duration-1000`}
             style={{ width: `${percent}%` }}
           />
         </div>
-        <div className="flex justify-between mt-3 text-sm text-text-muted">
-          <span>{formatPercent(percent)}</span>
-          <span>{formatPercent(100)}</span>
+        <div className="text-center mt-4 text-sm text-text-muted">
+          {formatPercent(percent)}
         </div>
       </div>
 
-      {/* Pace indicator - minimal */}
-      <div className="flex flex-col md:flex-row justify-center items-center gap-3 md:gap-8 text-base">
-        <div className={`font-medium ${statusColors[pace.status]}`}>
+      {/* Status */}
+      <div className="text-center text-sm text-text-secondary">
+        <span className={`font-medium ${statusColors[pace.status]}`}>
           {statusLabels[pace.status]}
-          {roundedDiff !== 0 && (
-            <span className="ml-2 font-normal">
-              {roundedDiff > 0 ? '+' : ''}
-              {roundedDiff}%
-            </span>
-          )}
-        </div>
-        <span className="hidden md:inline text-text-subtle">|</span>
-        <div className="text-text-secondary">
-          Forecast:{' '}
-          <span className="text-text font-medium">
-            {formatForecastDate(pace.forecastDate)}
-          </span>
-        </div>
+          {roundedDiff !== 0 && ` ${roundedDiff > 0 ? '+' : ''}${roundedDiff}%`}
+        </span>
+        <span className="mx-2">·</span>
+        <span>Прогноз: {formatForecastDate(pace.forecastDate)}</span>
       </div>
     </div>
   )

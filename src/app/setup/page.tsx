@@ -2,14 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Input,
-} from '@/components/ui'
 
 export default function SetupPage() {
   const router = useRouter()
@@ -24,8 +16,6 @@ export default function SetupPage() {
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split('T')[0],
-    trackIncome: true,
-    trackExpense: false,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,8 +34,8 @@ export default function SetupPage() {
           currency: form.currency,
           startDate: form.startDate,
           endDate: form.endDate,
-          trackIncome: form.trackIncome,
-          trackExpense: form.trackExpense,
+          trackIncome: true,
+          trackExpense: false,
           accountIds: [],
         }),
       })
@@ -53,137 +43,94 @@ export default function SetupPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to create goal')
+        throw new Error(data.error || 'Ошибка создания')
       }
 
       router.push('/')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : 'Неизвестная ошибка')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <main className="min-h-screen p-8 md:p-12 flex items-center justify-center">
-      <Card className="w-full max-w-lg">
-        <CardHeader>
-          <CardTitle>New Goal</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              label="Name"
-              placeholder="March Revenue"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+    <main className="min-h-screen flex items-center justify-center p-8">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-semibold">Новая цель</h1>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-sm text-text-muted hover:text-text transition-colors"
+          >
+            Отмена
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Название цели"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+            className="w-full px-4 py-3 bg-bg-elevated rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+          />
+
+          <div className="flex gap-3">
+            <input
+              type="number"
+              placeholder="Сумма"
+              value={form.targetAmount}
+              onChange={(e) =>
+                setForm({ ...form, targetAmount: e.target.value })
+              }
               required
+              min="0"
+              step="0.01"
+              className="flex-1 px-4 py-3 bg-bg-elevated rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
             />
+            <select
+              value={form.currency}
+              onChange={(e) => setForm({ ...form, currency: e.target.value })}
+              className="px-4 py-3 bg-bg-elevated rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+            >
+              <option value="RUB">₽</option>
+              <option value="USD">$</option>
+              <option value="EUR">€</option>
+            </select>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Target"
-                type="number"
-                placeholder="1000000"
-                value={form.targetAmount}
-                onChange={(e) =>
-                  setForm({ ...form, targetAmount: e.target.value })
-                }
-                required
-                min="0"
-                step="0.01"
-              />
+          <div className="flex gap-3">
+            <input
+              type="date"
+              value={form.startDate}
+              onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+              required
+              className="flex-1 px-4 py-3 bg-bg-elevated rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+            />
+            <input
+              type="date"
+              value={form.endDate}
+              onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+              required
+              className="flex-1 px-4 py-3 bg-bg-elevated rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+            />
+          </div>
 
-              <div>
-                <label
-                  htmlFor="currency-select"
-                  className="block text-sm font-medium text-text-secondary mb-2"
-                >
-                  Currency
-                </label>
-                <select
-                  id="currency-select"
-                  value={form.currency}
-                  onChange={(e) =>
-                    setForm({ ...form, currency: e.target.value })
-                  }
-                  className="w-full px-4 py-3 bg-bg-muted rounded-xl focus:ring-2 focus:ring-primary focus:outline-none transition-shadow"
-                >
-                  <option value="RUB">RUB</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                </select>
-              </div>
-            </div>
+          {error && <p className="text-xs text-danger text-center">{error}</p>}
 
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Start Date"
-                type="date"
-                value={form.startDate}
-                onChange={(e) =>
-                  setForm({ ...form, startDate: e.target.value })
-                }
-                required
-              />
-
-              <Input
-                label="End Date"
-                type="date"
-                value={form.endDate}
-                onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                required
-              />
-            </div>
-
-            <fieldset className="space-y-3">
-              <legend className="block text-sm font-medium text-text-secondary">
-                Track
-              </legend>
-              <div className="flex gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.trackIncome}
-                    onChange={(e) =>
-                      setForm({ ...form, trackIncome: e.target.checked })
-                    }
-                    className="w-4 h-4 rounded border-0 bg-bg-muted text-primary focus:ring-primary focus:ring-offset-0"
-                  />
-                  <span className="text-sm">Income</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.trackExpense}
-                    onChange={(e) =>
-                      setForm({ ...form, trackExpense: e.target.checked })
-                    }
-                    className="w-4 h-4 rounded border-0 bg-bg-muted text-primary focus:ring-primary focus:ring-offset-0"
-                  />
-                  <span className="text-sm">Expenses</span>
-                </label>
-              </div>
-            </fieldset>
-
-            {error && <p className="text-danger text-sm">{error}</p>}
-
-            <div className="flex gap-4 pt-2">
-              <Button type="submit" disabled={loading} className="flex-1">
-                {loading ? 'Creating...' : 'Create Goal'}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.back()}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-full font-medium disabled:opacity-50 transition-colors"
+          >
+            {loading ? 'Создание...' : 'Создать'}
+          </button>
+        </form>
+      </div>
     </main>
   )
 }

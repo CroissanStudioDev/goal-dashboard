@@ -36,12 +36,9 @@ export function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-sm text-text-secondary hover:text-text transition-colors"
+        className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-medium hover:opacity-90 transition-opacity"
       >
-        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-medium">
-          {initials}
-        </div>
-        <span className="hidden md:inline">{session.user.name}</span>
+        {initials}
       </button>
 
       {open && (
@@ -51,21 +48,19 @@ export function UserMenu() {
             className="fixed inset-0 z-10 cursor-default"
             onClick={() => setOpen(false)}
             onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
-            aria-label="Close menu"
+            aria-label="Закрыть меню"
           />
-          <div className="absolute right-0 mt-2 w-56 bg-bg-elevated rounded-xl shadow-lg z-20 overflow-hidden">
-            <div className="p-4 border-b border-border">
-              <div className="font-medium text-text">{session.user.name}</div>
-              <div className="text-sm text-text-muted mt-0.5">
-                {session.user.email}
-              </div>
+          <div className="absolute right-0 mt-2 w-48 bg-bg-elevated rounded-xl shadow-lg z-20 overflow-hidden">
+            <div className="p-3 border-b border-border">
+              <div className="text-sm font-medium">{session.user.name}</div>
+              <div className="text-xs text-text-muted">{session.user.email}</div>
             </div>
             <button
               type="button"
               onClick={handleSignOut}
-              className="w-full text-left px-4 py-3 text-sm text-danger hover:bg-bg-muted transition-colors"
+              className="w-full text-left px-3 py-2.5 text-sm text-danger hover:bg-bg-muted transition-colors"
             >
-              Sign Out
+              Выйти
             </button>
           </div>
         </>
