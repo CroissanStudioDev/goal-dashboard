@@ -8,6 +8,7 @@ import { AccountsList } from './AccountsList'
 import { ConnectBankForm } from './ConnectBankForm'
 import { GoalsList } from './GoalsList'
 import { SyncButton } from './SyncButton'
+import { SyncSettings } from './SyncSettings'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,7 +58,7 @@ export default async function SettingsPage() {
         <header className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">⚙️ Настройки</h1>
           <div className="flex items-center gap-4">
-            <a href="/" className="text-gray-400 hover:text-white">
+            <a href="/" className="text-text-secondary hover:text-text">
               ← На дашборд
             </a>
             <UserMenu />
@@ -71,7 +72,7 @@ export default async function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <AccountsList accounts={accountsList} />
-            <hr className="border-gray-800" />
+            <hr className="border-border" />
             <ConnectBankForm />
           </CardContent>
         </Card>
@@ -85,7 +86,7 @@ export default async function SettingsPage() {
             <GoalsList goals={goalsList} />
             <a
               href="/setup"
-              className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
+              className="inline-block px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg"
             >
               + Новая цель
             </a>
@@ -97,11 +98,9 @@ export default async function SettingsPage() {
           <CardHeader>
             <CardTitle>🔄 Синхронизация</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-gray-400 mb-4">
-              Транзакции синхронизируются автоматически каждые 10 минут пока
-              открыт дашборд. Вы можете запустить синхронизацию вручную.
-            </p>
+          <CardContent className="space-y-4">
+            <SyncSettings />
+            <hr className="border-border" />
             <SyncButton />
           </CardContent>
         </Card>

@@ -23,8 +23,8 @@ export function LiveIndicator() {
   })
 
   return (
-    <div className="flex items-center gap-2 text-gray-400">
-      <span className="w-2 h-2 bg-green-500 rounded-full live-indicator" />
+    <div className="flex items-center gap-2 text-text-secondary">
+      <span className="w-2 h-2 bg-success rounded-full live-indicator" />
       <span className="text-sm">Обновлено в {timeStr}</span>
     </div>
   )

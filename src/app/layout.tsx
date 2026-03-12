@@ -18,7 +18,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#000000',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+  ],
 }
 
 export default function RootLayout({
@@ -28,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" className={mono.variable}>
-      <body className="bg-black text-white antialiased min-h-screen">
+      <body className="bg-bg text-text antialiased min-h-screen">
         {children}
       </body>
     </html>

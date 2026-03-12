@@ -1,10 +1,9 @@
 'use client'
 
 import { useBankSync } from '@/hooks/useBankSync'
+import { useSyncSettings } from '@/hooks/useSyncSettings'
 
 interface SyncStatusProps {
-  /** Polling interval in minutes */
-  intervalMinutes?: number
   /** Show detailed status */
   verbose?: boolean
 }
@@ -12,28 +11,26 @@ interface SyncStatusProps {
 /**
  * Component that handles bank sync polling and shows status
  */
-export function SyncStatus({
-  intervalMinutes = 10,
-  verbose = false,
-}: SyncStatusProps) {
+export function SyncStatus({ verbose = false }: SyncStatusProps) {
+  const { intervalMs, isEnabled, isLoaded } = useSyncSettings()
   const { isSyncing, lastSync, error, sync } = useBankSync({
-    intervalMs: intervalMinutes * 60 * 1000,
+    intervalMs,
     syncOnMount: true,
-    enabled: true,
+    enabled: isLoaded && isEnabled,
   })
 
   if (!verbose) {
     // Minimal indicator
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500">
+      <div className="flex items-center gap-2 text-sm text-text-muted">
         {isSyncing ? (
           <>
-            <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+            <span className="w-2 h-2 bg-warning rounded-full animate-pulse" />
             <span>Синхронизация...</span>
           </>
         ) : lastSync ? (
           <>
-            <span className="w-2 h-2 bg-green-500 rounded-full" />
+            <span className="w-2 h-2 bg-success rounded-full" />
             <span>
               {lastSync.totalAdded > 0
                 ? `+${lastSync.totalAdded} новых`
@@ -42,7 +39,7 @@ export function SyncStatus({
           </>
         ) : error ? (
           <>
-            <span className="w-2 h-2 bg-red-500 rounded-full" />
+            <span className="w-2 h-2 bg-danger rounded-full" />
             <span>Ошибка синхронизации</span>
           </>
         ) : null}
@@ -54,36 +51,36 @@ export function SyncStatus({
   return (
     <div className="space-y-2 text-sm">
       <div className="flex items-center justify-between">
-        <span className="text-gray-400">Синхронизация банков</span>
+        <span className="text-text-secondary">Синхронизация банков</span>
         <button
           type="button"
           onClick={() => sync()}
           disabled={isSyncing}
-          className="text-blue-400 hover:text-blue-300 disabled:opacity-50"
+          className="text-primary-text hover:text-primary disabled:opacity-50"
         >
           {isSyncing ? 'Загрузка...' : 'Обновить'}
         </button>
       </div>
 
       {lastSync && (
-        <div className="text-gray-500">
+        <div className="text-text-muted">
           Последняя: {new Date(lastSync.syncedAt).toLocaleTimeString('ru-RU')}
           {lastSync.totalAdded > 0 && (
-            <span className="text-green-400 ml-2">
+            <span className="text-success-text ml-2">
               +{lastSync.totalAdded} транзакций
             </span>
           )}
         </div>
       )}
 
-      {error && <div className="text-red-400">{error}</div>}
+      {error && <div className="text-danger-text">{error}</div>}
 
       {lastSync?.results && (
         <div className="space-y-1">
           {lastSync.results.map((r) => (
             <div
               key={`${r.bank}-${r.accountId}`}
-              className="text-xs text-gray-600"
+              className="text-xs text-text-subtle"
             >
               {r.bank}: {r.status}
               {r.added !== undefined && r.added > 0 && ` (+${r.added})`}

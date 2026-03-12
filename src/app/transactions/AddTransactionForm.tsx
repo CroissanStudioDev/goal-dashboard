@@ -70,9 +70,9 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
 
   if (accounts.length === 0) {
     return (
-      <p className="text-gray-500">
+      <p className="text-text-muted">
         Сначала подключите банковский счёт в{' '}
-        <a href="/settings" className="text-blue-400 hover:underline">
+        <a href="/settings" className="text-primary-text hover:underline">
           настройках
         </a>
       </p>
@@ -85,7 +85,7 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
         <div className="space-y-1">
           <label
             htmlFor="account-select"
-            className="block text-sm font-medium text-gray-300"
+            className="block text-sm font-medium text-text-secondary"
           >
             Счёт
           </label>
@@ -93,7 +93,7 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
             id="account-select"
             value={form.accountId}
             onChange={(e) => setForm({ ...form, accountId: e.target.value })}
-            className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
+            className="w-full px-4 py-2 rounded-lg bg-bg-muted border border-border-muted text-text"
             required
           >
             {accounts.map((acc) => (
@@ -107,7 +107,7 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
         <div className="space-y-1">
           <label
             htmlFor="type-select"
-            className="block text-sm font-medium text-gray-300"
+            className="block text-sm font-medium text-text-secondary"
           >
             Тип
           </label>
@@ -117,7 +117,7 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
             onChange={(e) =>
               setForm({ ...form, type: e.target.value as 'INCOME' | 'EXPENSE' })
             }
-            className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
+            className="w-full px-4 py-2 rounded-lg bg-bg-muted border border-border-muted text-text"
           >
             <option value="INCOME">Приход</option>
             <option value="EXPENSE">Расход</option>
@@ -160,7 +160,7 @@ export function AddTransactionForm({ accounts }: AddTransactionFormProps) {
         />
       </div>
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-danger-text text-sm">{error}</p>}
 
       <Button type="submit" disabled={loading}>
         {loading ? 'Добавление...' : 'Добавить'}

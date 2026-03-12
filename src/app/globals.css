@@ -1,19 +1,184 @@
 @import "tailwindcss";
 
-:root {
-  --color-ahead: #22c55e;
-  --color-ontrack: #3b82f6;
-  --color-behind: #f59e0b;
-  --color-atrisk: #ef4444;
+/* ========================================
+   Design Tokens (Tailwind v4 CSS-first)
+   ======================================== */
+
+@theme {
+  /* === Base Colors (raw palette) === */
+  --color-black: #000000;
+  --color-white: #ffffff;
+
+  /* Gray scale */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-300: #d4d4d8;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-700: #3f3f46;
+  --color-gray-800: #27272a;
+  --color-gray-900: #18181b;
+  --color-gray-950: #09090b;
+
+  /* Accent colors */
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+
+  --color-green-400: #4ade80;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+
+  --color-yellow-400: #facc15;
+  --color-yellow-500: #eab308;
+  --color-yellow-600: #ca8a04;
+
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+
+  /* === Semantic Tokens - set by light/dark mode below === */
+  --color-bg: var(--color-black);
+  --color-bg-elevated: var(--color-gray-900);
+  --color-bg-muted: var(--color-gray-800);
+  --color-bg-subtle: var(--color-gray-700);
+
+  --color-text: var(--color-white);
+  --color-text-secondary: var(--color-gray-400);
+  --color-text-muted: var(--color-gray-500);
+  --color-text-subtle: var(--color-gray-600);
+
+  --color-border: var(--color-gray-800);
+  --color-border-muted: var(--color-gray-700);
+
+  --color-primary: var(--color-blue-600);
+  --color-primary-hover: var(--color-blue-700);
+  --color-primary-text: var(--color-blue-400);
+
+  --color-success: var(--color-green-500);
+  --color-success-text: var(--color-green-400);
+  --color-warning: var(--color-yellow-500);
+  --color-warning-text: var(--color-yellow-400);
+  --color-danger: var(--color-red-500);
+  --color-danger-text: var(--color-red-400);
+
+  --color-goal-ahead: var(--color-green-500);
+  --color-goal-ahead-text: var(--color-green-400);
+  --color-goal-ontrack: var(--color-blue-500);
+  --color-goal-ontrack-text: var(--color-blue-400);
+  --color-goal-behind: var(--color-yellow-500);
+  --color-goal-behind-text: var(--color-yellow-400);
+  --color-goal-atrisk: var(--color-red-500);
+  --color-goal-atrisk-text: var(--color-red-400);
+}
+
+/* ========================================
+   Light Theme (System Preference)
+   ======================================== */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+
+    /* Backgrounds */
+    --color-bg: var(--color-white);
+    --color-bg-elevated: var(--color-gray-50);
+    --color-bg-muted: var(--color-gray-100);
+    --color-bg-subtle: var(--color-gray-200);
+
+    /* Text */
+    --color-text: var(--color-gray-950);
+    --color-text-secondary: var(--color-gray-600);
+    --color-text-muted: var(--color-gray-500);
+    --color-text-subtle: var(--color-gray-400);
+
+    /* Borders */
+    --color-border: var(--color-gray-200);
+    --color-border-muted: var(--color-gray-300);
+
+    /* Interactive */
+    --color-primary: var(--color-blue-600);
+    --color-primary-hover: var(--color-blue-700);
+    --color-primary-text: var(--color-blue-600);
+
+    /* Status - darker for light mode readability */
+    --color-success: var(--color-green-600);
+    --color-success-text: var(--color-green-600);
+    --color-warning: var(--color-yellow-600);
+    --color-warning-text: var(--color-yellow-600);
+    --color-danger: var(--color-red-600);
+    --color-danger-text: var(--color-red-600);
+
+    /* Goal status */
+    --color-goal-ahead: var(--color-green-500);
+    --color-goal-ahead-text: var(--color-green-600);
+    --color-goal-ontrack: var(--color-blue-500);
+    --color-goal-ontrack-text: var(--color-blue-600);
+    --color-goal-behind: var(--color-yellow-500);
+    --color-goal-behind-text: var(--color-yellow-600);
+    --color-goal-atrisk: var(--color-red-500);
+    --color-goal-atrisk-text: var(--color-red-600);
+  }
+}
+
+/* ========================================
+   Dark Theme (System Preference)
+   ======================================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    /* Backgrounds */
+    --color-bg: var(--color-black);
+    --color-bg-elevated: var(--color-gray-900);
+    --color-bg-muted: var(--color-gray-800);
+    --color-bg-subtle: var(--color-gray-700);
+
+    /* Text */
+    --color-text: var(--color-white);
+    --color-text-secondary: var(--color-gray-400);
+    --color-text-muted: var(--color-gray-500);
+    --color-text-subtle: var(--color-gray-600);
+
+    /* Borders */
+    --color-border: var(--color-gray-800);
+    --color-border-muted: var(--color-gray-700);
+
+    /* Interactive */
+    --color-primary: var(--color-blue-600);
+    --color-primary-hover: var(--color-blue-700);
+    --color-primary-text: var(--color-blue-400);
+
+    /* Status */
+    --color-success: var(--color-green-500);
+    --color-success-text: var(--color-green-400);
+    --color-warning: var(--color-yellow-500);
+    --color-warning-text: var(--color-yellow-400);
+    --color-danger: var(--color-red-500);
+    --color-danger-text: var(--color-red-400);
+
+    /* Goal status */
+    --color-goal-ahead: var(--color-green-500);
+    --color-goal-ahead-text: var(--color-green-400);
+    --color-goal-ontrack: var(--color-blue-500);
+    --color-goal-ontrack-text: var(--color-blue-400);
+    --color-goal-behind: var(--color-yellow-500);
+    --color-goal-behind-text: var(--color-yellow-400);
+    --color-goal-atrisk: var(--color-red-500);
+    --color-goal-atrisk-text: var(--color-red-400);
+  }
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light dark;
 }
 
 body {
   font-family: var(--font-mono), ui-monospace, monospace;
-  background: #000;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 /* TV mode: hide scrollbars, cursor */

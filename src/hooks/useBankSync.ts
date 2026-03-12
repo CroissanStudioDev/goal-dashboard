@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface SyncResult {
   syncedAt: string
@@ -38,10 +38,12 @@ export function useBankSync(options: UseBankSyncOptions = {}) {
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastSync, setLastSync] = useState<SyncResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const syncingRef = useRef(false)
 
   const sync = useCallback(async () => {
-    if (isSyncing) return
+    if (syncingRef.current) return
 
+    syncingRef.current = true
     setIsSyncing(true)
     setError(null)
 
@@ -65,16 +67,18 @@ export function useBankSync(options: UseBankSyncOptions = {}) {
       setError(err instanceof Error ? err.message : 'Sync error')
       return null
     } finally {
+      syncingRef.current = false
       setIsSyncing(false)
     }
-  }, [isSyncing, router])
+  }, [router])
 
-  // Sync on mount
+  // Sync on mount (only once)
   useEffect(() => {
     if (enabled && syncOnMount) {
       sync()
     }
-  }, [enabled, sync, syncOnMount]) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Polling interval
   useEffect(() => {

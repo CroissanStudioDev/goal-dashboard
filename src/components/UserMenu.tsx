@@ -16,7 +16,7 @@ export function UserMenu() {
   }
 
   if (isPending) {
-    return <div className="w-8 h-8 rounded-full bg-gray-800 animate-pulse" />
+    return <div className="w-8 h-8 rounded-full bg-bg-muted animate-pulse" />
   }
 
   if (!session) {
@@ -36,9 +36,9 @@ export function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
+        className="flex items-center gap-2 text-sm text-text-secondary hover:text-text"
       >
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium">
+        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-text text-xs font-medium">
           {initials}
         </div>
         <span className="hidden md:inline">{session.user.name}</span>
@@ -53,15 +53,15 @@ export function UserMenu() {
             onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
             aria-label="Close menu"
           />
-          <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-800 rounded-lg shadow-lg z-20">
-            <div className="p-3 border-b border-gray-800">
-              <div className="font-medium text-white">{session.user.name}</div>
-              <div className="text-sm text-gray-500">{session.user.email}</div>
+          <div className="absolute right-0 mt-2 w-48 bg-bg-elevated border border-border rounded-lg shadow-lg z-20">
+            <div className="p-3 border-b border-border">
+              <div className="font-medium text-text">{session.user.name}</div>
+              <div className="text-sm text-text-muted">{session.user.email}</div>
             </div>
             <button
               type="button"
               onClick={handleSignOut}
-              className="w-full text-left px-3 py-2 text-red-400 hover:bg-gray-800 rounded-b-lg"
+              className="w-full text-left px-3 py-2 text-danger-text hover:bg-bg-muted rounded-b-lg"
             >
               Выйти
             </button>

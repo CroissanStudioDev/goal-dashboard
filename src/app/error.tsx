@@ -18,7 +18,7 @@ export default function ErrorPage({
     <main className="min-h-screen p-8 flex flex-col items-center justify-center">
       <div className="text-6xl mb-4">😵</div>
       <h1 className="text-2xl font-bold mb-2">Что-то пошло не так</h1>
-      <p className="text-gray-400 mb-6 text-center max-w-md">
+      <p className="text-text-secondary mb-6 text-center max-w-md">
         {error.message || 'Произошла непредвиденная ошибка'}
       </p>
       <div className="flex gap-4">
@@ -31,7 +31,7 @@ export default function ErrorPage({
         </Button>
       </div>
       {error.digest && (
-        <p className="text-gray-600 text-sm mt-4">Error ID: {error.digest}</p>
+        <p className="text-text-subtle text-sm mt-4">Error ID: {error.digest}</p>
       )}
     </main>
   )

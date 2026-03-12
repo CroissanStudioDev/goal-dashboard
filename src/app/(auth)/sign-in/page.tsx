@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 import {
@@ -52,7 +51,7 @@ function SignInForm() {
   }
 
   return (
-    <main className="min-h-screen p-8 flex items-center justify-center bg-black">
+    <main className="min-h-screen p-8 flex items-center justify-center bg-bg">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>🔐 Вход</CardTitle>
@@ -79,19 +78,12 @@ function SignInForm() {
               autoComplete="current-password"
             />
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-danger-text text-sm">{error}</p>}
 
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? 'Вход...' : 'Войти'}
             </Button>
           </form>
-
-          <p className="text-center text-gray-500 text-sm mt-4">
-            Нет аккаунта?{' '}
-            <Link href="/sign-up" className="text-blue-400 hover:underline">
-              Зарегистрироваться
-            </Link>
-          </p>
         </CardContent>
       </Card>
     </main>
@@ -102,9 +94,9 @@ export default function SignInPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen p-8 flex items-center justify-center bg-black">
+        <main className="min-h-screen p-8 flex items-center justify-center bg-bg">
           <Card className="w-full max-w-md">
-            <CardContent className="p-8 text-center text-gray-500">
+            <CardContent className="p-8 text-center text-text-muted">
               Загрузка...
             </CardContent>
           </Card>

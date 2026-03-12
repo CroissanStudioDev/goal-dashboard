@@ -68,7 +68,7 @@ export default async function TransactionsPage() {
         <header className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">💰 Транзакции</h1>
           <div className="flex items-center gap-4">
-            <a href="/" className="text-gray-400 hover:text-white">
+            <a href="/" className="text-text-secondary hover:text-text">
               ← На дашборд
             </a>
             <UserMenu />
@@ -94,19 +94,19 @@ export default async function TransactionsPage() {
           </CardHeader>
           <CardContent>
             {txList.length === 0 ? (
-              <p className="text-gray-500">Нет транзакций</p>
+              <p className="text-text-muted">Нет транзакций</p>
             ) : (
               <div className="space-y-2">
                 {txList.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex justify-between items-center p-3 bg-gray-900 rounded-lg"
+                    className="flex justify-between items-center p-3 bg-bg-elevated rounded-lg"
                   >
                     <div>
                       <div className="font-medium">
                         {tx.counterparty || tx.description || 'Без описания'}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-text-muted">
                         {new Date(tx.executedAt).toLocaleDateString('ru-RU', {
                           day: 'numeric',
                           month: 'short',
@@ -117,7 +117,7 @@ export default async function TransactionsPage() {
                     </div>
                     <div
                       className={`font-mono font-medium ${
-                        tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400'
+                        tx.type === 'INCOME' ? 'text-success-text' : 'text-danger-text'
                       }`}
                     >
                       {tx.type === 'INCOME' ? '+' : '-'}

@@ -16,17 +16,17 @@ interface GoalProgressProps {
 }
 
 const statusColors: Record<PaceStatus, string> = {
-  ahead: 'text-green-400',
-  ontrack: 'text-blue-400',
-  behind: 'text-yellow-400',
-  atrisk: 'text-red-400',
+  ahead: 'text-goal-ahead-text',
+  ontrack: 'text-goal-ontrack-text',
+  behind: 'text-goal-behind-text',
+  atrisk: 'text-goal-atrisk-text',
 }
 
 const statusBgColors: Record<PaceStatus, string> = {
-  ahead: 'bg-green-500',
-  ontrack: 'bg-blue-500',
-  behind: 'bg-yellow-500',
-  atrisk: 'bg-red-500',
+  ahead: 'bg-goal-ahead',
+  ontrack: 'bg-goal-ontrack',
+  behind: 'bg-goal-behind',
+  atrisk: 'bg-goal-atrisk',
 }
 
 const statusLabels: Record<PaceStatus, string> = {
@@ -54,14 +54,14 @@ export function GoalProgress({
         >
           {formatCurrency(current, currency)}
         </div>
-        <div className="text-2xl md:text-3xl text-gray-500 mt-2">
+        <div className="text-2xl md:text-3xl text-text-muted mt-2">
           из {formatCurrency(target, currency)}
         </div>
       </div>
 
       {/* Progress bar */}
       <div className="relative max-w-3xl mx-auto">
-        <div className="h-6 md:h-8 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-6 md:h-8 bg-bg-muted rounded-full overflow-hidden">
           <div
             className={`h-full ${statusBgColors[pace.status]} progress-bar rounded-full transition-all duration-1000`}
             style={{ width: `${percent}%` }}
@@ -85,9 +85,9 @@ export function GoalProgress({
             </span>
           )}
         </div>
-        <div className="text-gray-400">
+        <div className="text-text-secondary">
           Прогноз: достигнем{' '}
-          <span className="text-white">{pace.forecastDate}</span>
+          <span className="text-text">{pace.forecastDate}</span>
         </div>
       </div>
     </div>

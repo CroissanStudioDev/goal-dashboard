@@ -69,7 +69,7 @@ export function SyncButton() {
       {result && (
         <p
           className={
-            result.success ? 'text-green-400 text-sm' : 'text-red-400 text-sm'
+            result.success ? 'text-success-text text-sm' : 'text-danger-text text-sm'
           }
         >
           {result.message}

@@ -7,26 +7,25 @@ import { Button, Input } from '@/components/ui'
 export function ConnectBankForm() {
   const router = useRouter()
   const [bank, setBank] = useState<'tochka' | 'tbank'>('tochka')
-  const [tbankToken, setTbankToken] = useState('')
+  const [token, setToken] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const handleTochkaConnect = () => {
-    window.location.href = '/api/banks/tochka'
-  }
-
-  const handleTBankConnect = async (e: React.FormEvent) => {
+  const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     setSuccess(null)
 
     try {
-      const res = await fetch('/api/banks/tbank', {
+      const endpoint =
+        bank === 'tochka' ? '/api/banks/tochka' : '/api/banks/tbank'
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tbankToken }),
+        body: JSON.stringify({ token }),
       })
 
       const data = await res.json()
@@ -36,13 +35,27 @@ export function ConnectBankForm() {
       }
 
       setSuccess(`Подключено ${data.accounts.length} счёт(ов)`)
-      setTbankToken('')
+      setToken('')
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
+  }
+
+  const bankInfo = {
+    tochka: {
+      label: 'Точка',
+      description:
+        'Введите JWT-токен из раздела "Интеграции и API" в личном кабинете.',
+      placeholder: 'Вставьте JWT-токен...',
+    },
+    tbank: {
+      label: 'Т-Банк',
+      description: 'Введите API-токен из личного кабинета Т-Бизнес.',
+      placeholder: 'Вставьте API-токен...',
+    },
   }
 
   return (
@@ -54,7 +67,7 @@ export function ConnectBankForm() {
           type="button"
           onClick={() => setBank('tochka')}
           className={`px-4 py-2 rounded-lg ${
-            bank === 'tochka' ? 'bg-blue-600' : 'bg-gray-800'
+            bank === 'tochka' ? 'bg-primary' : 'bg-bg-muted'
           }`}
         >
           Точка
@@ -63,41 +76,30 @@ export function ConnectBankForm() {
           type="button"
           onClick={() => setBank('tbank')}
           className={`px-4 py-2 rounded-lg ${
-            bank === 'tbank' ? 'bg-blue-600' : 'bg-gray-800'
+            bank === 'tbank' ? 'bg-primary' : 'bg-bg-muted'
           }`}
         >
           Т-Банк
         </button>
       </div>
 
-      {bank === 'tochka' ? (
-        <div className="space-y-3">
-          <p className="text-sm text-gray-400">
-            Подключение через OAuth 2.0. Вы будете перенаправлены на сайт банка.
-          </p>
-          <Button onClick={handleTochkaConnect}>Подключить Точку</Button>
-        </div>
-      ) : (
-        <form onSubmit={handleTBankConnect} className="space-y-3">
-          <p className="text-sm text-gray-400">
-            Введите API-токен из личного кабинета Т-Бизнес.
-          </p>
-          <Input
-            label="API Token"
-            type="password"
-            placeholder="Вставьте токен..."
-            value={tbankToken}
-            onChange={(e) => setTbankToken(e.target.value)}
-            required
-          />
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Подключение...' : 'Подключить Т-Банк'}
-          </Button>
-        </form>
-      )}
+      <form onSubmit={handleConnect} className="space-y-3">
+        <p className="text-sm text-text-secondary">{bankInfo[bank].description}</p>
+        <Input
+          label="Токен"
+          type="password"
+          placeholder={bankInfo[bank].placeholder}
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          required
+        />
+        <Button type="submit" disabled={loading}>
+          {loading ? 'Подключение...' : `Подключить ${bankInfo[bank].label}`}
+        </Button>
+      </form>
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
-      {success && <p className="text-green-400 text-sm">{success}</p>}
+      {error && <p className="text-danger-text text-sm">{error}</p>}
+      {success && <p className="text-success-text text-sm">{success}</p>}
     </div>
   )
 }

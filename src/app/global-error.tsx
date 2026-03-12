@@ -13,7 +13,7 @@ export default function GlobalError({
         <main className="min-h-screen p-8 flex flex-col items-center justify-center">
           <div className="text-6xl mb-4">💀</div>
           <h1 className="text-2xl font-bold mb-2">Критическая ошибка</h1>
-          <p className="text-gray-400 mb-6">
+          <p className="text-zinc-400 mb-6">
             {error.message || 'Приложение не может загрузиться'}
           </p>
           <button

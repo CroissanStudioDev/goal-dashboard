@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 import { useBankSync } from '@/hooks/useBankSync'
 import { useFullscreen } from '@/hooks/useFullscreen'
+import { useSyncSettings } from '@/hooks/useSyncSettings'
 import { formatCurrency, formatPercent } from '@/lib/format'
 
 type PaceStatus = 'ahead' | 'ontrack' | 'behind' | 'atrisk'
@@ -39,17 +40,17 @@ interface TVDashboardProps {
 }
 
 const statusColors: Record<PaceStatus, string> = {
-  ahead: 'text-green-400',
-  ontrack: 'text-blue-400',
-  behind: 'text-yellow-400',
-  atrisk: 'text-red-400',
+  ahead: 'text-goal-ahead-text',
+  ontrack: 'text-goal-ontrack-text',
+  behind: 'text-goal-behind-text',
+  atrisk: 'text-goal-atrisk-text',
 }
 
 const statusBgColors: Record<PaceStatus, string> = {
-  ahead: 'bg-green-500',
-  ontrack: 'bg-blue-500',
-  behind: 'bg-yellow-500',
-  atrisk: 'bg-red-500',
+  ahead: 'bg-goal-ahead',
+  ontrack: 'bg-goal-ontrack',
+  behind: 'bg-goal-behind',
+  atrisk: 'bg-goal-atrisk',
 }
 
 const statusLabels: Record<PaceStatus, string> = {
@@ -66,10 +67,12 @@ export function TVDashboard({ data }: TVDashboardProps) {
   // Auto-refresh page every 30 seconds
   useAutoRefresh(30_000)
 
-  // Sync banks every 10 minutes while TV is open
+  // Sync banks based on user settings
+  const { intervalMs, isEnabled, isLoaded } = useSyncSettings()
   const { isSyncing, lastSync: _lastSync } = useBankSync({
-    intervalMs: 10 * 60 * 1000,
+    intervalMs,
     syncOnMount: true,
+    enabled: isLoaded && isEnabled,
   })
 
   // Update clock every second
@@ -99,8 +102,8 @@ export function TVDashboard({ data }: TVDashboardProps) {
       {/* Header */}
       <header className="flex justify-between items-start mb-4">
         <div>
-          <h1 className="text-3xl text-gray-400">{goal.name}</h1>
-          <p className="text-gray-600 text-lg">
+          <h1 className="text-3xl text-text-secondary">{goal.name}</h1>
+          <p className="text-text-subtle text-lg">
             до{' '}
             {new Date(goal.endDate).toLocaleDateString('ru-RU', {
               day: 'numeric',
@@ -109,19 +112,19 @@ export function TVDashboard({ data }: TVDashboardProps) {
           </p>
         </div>
         <div className="text-right">
-          <div className="text-4xl font-mono text-gray-300">
+          <div className="text-4xl font-mono text-text-secondary">
             {time.toLocaleTimeString('ru-RU', {
               hour: '2-digit',
               minute: '2-digit',
             })}
           </div>
-          <div className="flex items-center gap-2 text-gray-500 justify-end">
+          <div className="flex items-center gap-2 text-text-muted justify-end">
             <span
-              className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}
+              className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-warning animate-pulse' : 'bg-success'}`}
             />
             <span className="text-sm">{isSyncing ? 'SYNC' : 'LIVE'}</span>
             {!isFullscreen && (
-              <span className="text-xs text-gray-600 ml-2">
+              <span className="text-xs text-text-subtle ml-2">
                 (клик для fullscreen)
               </span>
             )}
@@ -139,21 +142,21 @@ export function TVDashboard({ data }: TVDashboardProps) {
           >
             {formatCurrency(progress.current, goal.currency)}
           </div>
-          <div className="text-4xl text-gray-500 mt-4">
+          <div className="text-4xl text-text-muted mt-4">
             из {formatCurrency(progress.target, goal.currency)}
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="relative mx-auto w-full max-w-4xl">
-          <div className="h-12 bg-gray-900 rounded-full overflow-hidden">
+          <div className="h-12 bg-bg-elevated rounded-full overflow-hidden">
             <div
               className={`h-full ${statusBgColors[pace.status]} transition-all duration-1000 rounded-full`}
               style={{ width: `${percent}%` }}
             />
           </div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-3xl font-bold text-white drop-shadow-lg">
+            <span className="text-3xl font-bold text-text drop-shadow-lg">
               {formatPercent(percent)}
             </span>
           </div>
@@ -170,32 +173,32 @@ export function TVDashboard({ data }: TVDashboardProps) {
               </span>
             )}
           </span>
-          <span className="text-gray-500 mx-4">•</span>
-          <span className="text-gray-400">
-            Прогноз: <span className="text-white">{pace.forecastDate}</span>
+          <span className="text-text-muted mx-4">•</span>
+          <span className="text-text-secondary">
+            Прогноз: <span className="text-text">{pace.forecastDate}</span>
           </span>
         </div>
       </div>
 
       {/* Footer stats */}
-      <footer className="flex justify-center gap-24 text-2xl pt-8 border-t border-gray-900">
+      <footer className="flex justify-center gap-24 text-2xl pt-8 border-t border-border">
         <div className="text-center">
-          <div className="text-gray-500 mb-2">Сегодня</div>
-          <div className="text-5xl font-bold text-green-400">
+          <div className="text-text-muted mb-2">Сегодня</div>
+          <div className="text-5xl font-bold text-success-text">
             +{formatCurrency(today.amount, goal.currency)}
           </div>
-          <div className="text-gray-600 mt-1">
+          <div className="text-text-subtle mt-1">
             {today.transactions}{' '}
             {pluralize(today.transactions, 'платёж', 'платежа', 'платежей')}
           </div>
         </div>
 
         <div className="text-center">
-          <div className="text-gray-500 mb-2">Вчера</div>
-          <div className="text-5xl font-bold text-gray-400">
+          <div className="text-text-muted mb-2">Вчера</div>
+          <div className="text-5xl font-bold text-text-secondary">
             +{formatCurrency(yesterday.amount, goal.currency)}
           </div>
-          <div className="text-gray-600 mt-1">
+          <div className="text-text-subtle mt-1">
             {yesterday.transactions}{' '}
             {pluralize(yesterday.transactions, 'платёж', 'платежа', 'платежей')}
           </div>

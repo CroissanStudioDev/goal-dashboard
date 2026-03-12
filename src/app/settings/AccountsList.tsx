@@ -31,7 +31,7 @@ export function AccountsList({ accounts }: AccountsListProps) {
   }
 
   if (accounts.length === 0) {
-    return <p className="text-gray-500">Нет подключённых счетов</p>
+    return <p className="text-text-muted">Нет подключённых счетов</p>
   }
 
   return (
@@ -39,20 +39,20 @@ export function AccountsList({ accounts }: AccountsListProps) {
       {accounts.map((account) => (
         <div
           key={account.id}
-          className="flex items-center justify-between p-3 bg-gray-800 rounded-lg"
+          className="flex items-center justify-between p-3 bg-bg-muted rounded-lg"
         >
           <div>
             <div className="flex items-center gap-2">
               <span className="font-medium">{account.accountName}</span>
-              <span className="text-xs px-2 py-0.5 bg-gray-700 rounded">
+              <span className="text-xs px-2 py-0.5 bg-bg-subtle rounded">
                 {bankLabels[account.bank]}
               </span>
             </div>
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-text-secondary">
               {account.accountId} • {account.currency}
             </div>
             {account.lastSyncAt && (
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-text-muted">
                 Синхр: {new Date(account.lastSyncAt).toLocaleString('ru-RU')}
               </div>
             )}
@@ -60,7 +60,7 @@ export function AccountsList({ accounts }: AccountsListProps) {
           <button
             type="button"
             onClick={() => handleDisconnect(account.id)}
-            className="text-red-400 hover:text-red-300 text-sm"
+            className="text-danger-text hover:text-danger text-sm"
           >
             Отключить
           </button>

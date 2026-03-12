@@ -98,7 +98,7 @@ export default function SetupPage() {
               <div>
                 <label
                   htmlFor="currency-select"
-                  className="block text-sm font-medium text-gray-300 mb-1"
+                  className="block text-sm font-medium text-text-secondary mb-1"
                 >
                   Валюта
                 </label>
@@ -108,7 +108,7 @@ export default function SetupPage() {
                   onChange={(e) =>
                     setForm({ ...form, currency: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-bg-elevated border border-border-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="RUB">₽ RUB</option>
                   <option value="USD">$ USD</option>
@@ -138,7 +138,7 @@ export default function SetupPage() {
             </div>
 
             <fieldset className="space-y-2">
-              <legend className="block text-sm font-medium text-gray-300">
+              <legend className="block text-sm font-medium text-text-secondary">
                 Учитывать
               </legend>
               <div className="flex gap-4">
@@ -149,7 +149,7 @@ export default function SetupPage() {
                     onChange={(e) =>
                       setForm({ ...form, trackIncome: e.target.checked })
                     }
-                    className="rounded border-gray-700 bg-gray-900"
+                    className="rounded border-border-muted bg-bg-elevated"
                   />
                   <span>Доходы</span>
                 </label>
@@ -160,14 +160,14 @@ export default function SetupPage() {
                     onChange={(e) =>
                       setForm({ ...form, trackExpense: e.target.checked })
                     }
-                    className="rounded border-gray-700 bg-gray-900"
+                    className="rounded border-border-muted bg-bg-elevated"
                   />
                   <span>Расходы</span>
                 </label>
               </div>
             </fieldset>
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-danger-text text-sm">{error}</p>}
 
             <div className="flex gap-4">
               <Button type="submit" disabled={loading} className="flex-1">
